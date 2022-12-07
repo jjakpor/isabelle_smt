@@ -4,7 +4,7 @@ begin
 
 
 (* Regulars *)
-datatype 'a regex = None | Const "'a word" | Union "'a regex" "'a regex" | Concat "'a regex" "'a regex" | Star "'a regex"
+datatype 'a regex = None | Const "'a word" | Union "'a regex" "'a regex" | Concat "'a regex" "'a regex"  | Star "'a regex" 
 
 
 primrec pow:: "'a word set \<Rightarrow> nat \<Rightarrow> 'a word set" 
@@ -45,7 +45,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
 
 (* Define derivatives of regular languages *)
 
-primrec deriv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
+primrec deriv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
   where
   "deriv c None = None" |
   "deriv c (Const w) = (if (at w 0) = (Some c) then (Const (fac w 1 (size w))) else None)" |
@@ -54,35 +54,16 @@ primrec deriv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "deriv c (Star r) = Concat (deriv c r) (Star r)"
 
 
-(* Lifiting derivatives to words *)
+(* Lifting derivatives to words *)
 primrec deriv_word:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   where
   "deriv_word Epsilon r = r" |
   "deriv_word (a . u) r = deriv_word u (deriv a r)"
 
-(* Correctness of word derivatives *)
-lemma derivate_correct: "((a . w)  \<in> (lang r)) = (w \<in> (lang (deriv a r)))"
-  apply(induct r)
-      apply(auto)
-  sorry
-
-lemma word_derivate_correct[simp]: "(nullable  (deriv_word w r)) = (w \<in> (lang r))"
-  apply(induct w)
-   apply(auto)
-  sorry
-
-lemma none_empty: "nullable (deriv_word w None) = False"
-  apply(induct w)
-   apply(auto)
-  done
-  
-
 (* Define containment a nullability of derivative *)
-abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "contains w r \<equiv> nullable (deriv_word w r)"
+abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool"  (infixr "\<in>" 100) where "contains w r \<equiv> nullable (deriv_word w r)" 
 
 
-lemma "EX x. contains x (Star (Const (of_list ''ab'')))"
-  apply(simp)
-  sorry
+
 
 end

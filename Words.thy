@@ -13,7 +13,14 @@ primrec at :: "'a word \<Rightarrow> nat \<Rightarrow> 'a option"
   "at Epsilon i = None" |
   "at (a . w) i = (if i = 0 then Some a else at w (i-1))"
 
+primrec size :: "'a word \<Rightarrow> nat"
+  where
+  "size Epsilon = 0" |
+  "size (a . w) = Suc (size w)"
 
+lemma [simp]:"(at (a . w) 0) = (Some a)"
+  apply(auto)
+  done
 
 primrec concat:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" (infixr "*" 100)
   where
@@ -25,11 +32,33 @@ primrec rev :: "'a word \<Rightarrow> 'a word"
     "rev Epsilon = Epsilon" |
     "rev (Con a u) = concat (rev u) (a . Epsilon)"
 
-fun fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word"
+primrec fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word"
   where
    "fac Epsilon s l  = Epsilon" |
-   "fac w s 0 = Epsilon" |
    "fac (Con a w) s l = (if s=0 then (Con a (fac w 0 (l-1))) else (fac w (s-1) l))"
+
+primrec repeat :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" 
+  where
+  "repeat w 0 = Epsilon" |
+  "repeat w (Suc n) = w * (repeat w n)"
+
+lemma [simp]: "n \<ge> (size w) \<Longrightarrow> fac  w 0 n = w"
+proof (induction w)
+  case Epsilon
+  then show ?case by simp
+next
+  case IH:(Con a w)
+  fix n assume A:"n \<ge> (size (Con a w))"
+
+  have "fac (Con a w) 0 n = (Con a (fac w 0 (n-1)))" by simp
+
+  from A have "n-1 \<ge> (size (Con a w))-1" by simp
+  then have B:"n-1 \<ge> size w" by simp
+  
+  from B IH  have "(Con a (fac w 0 (n-1))) = (Con a w)" by simp
+
+  then show ?case sorry
+qed
 
 
 lemma epsilon_neutrality[simp]: "w * Epsilon = w \<and> Epsilon * w = w"
