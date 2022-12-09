@@ -25,7 +25,7 @@ lemma  assumes s:"x = (of_list ''abc'')" shows "x \<in> (Const (of_list ''abc'')
   done
 
 lemma  assumes s:"x = (of_list ''abc'')" shows "x \<in> (Concat (Union (Const (of_list ''a''))(Const (of_list ''c'')))  (Const (of_list ''bc'')))"
-  apply(simp add: s)
+  apply(auto simp add: s)
   done
 
 lemma  assumes s:"x = (of_list ''abbbbbc'')" shows "x \<in> (Concat (Const (of_list ''a'')) (Concat (Star (Const (of_list ''b''))) (Const (of_list ''c''))))"
@@ -35,6 +35,5 @@ lemma  assumes s:"x = (of_list ''abbbbbc'')" shows "x \<in> (Concat (Const (of_l
 lemma  assumes s:"x = (of_list ''abdbbbbc'')" shows "\<not>x \<in> (Concat (Const (of_list ''a'')) (Concat (Star (Const (of_list ''b''))) (Const (of_list ''c''))))"
   apply(simp add: s)
   done
-
 
 end

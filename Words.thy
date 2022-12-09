@@ -42,6 +42,13 @@ primrec repeat :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word"
   "repeat w 0 = Epsilon" |
   "repeat w (Suc n) = w * (repeat w n)"
 
+
+lemma epsi_concat: "Epsilon = u * v \<longleftrightarrow> ((u = Epsilon) \<and> (v = Epsilon))"
+  apply(induct u)
+  apply(auto)
+  done
+
+
 lemma [simp]: "n \<ge> (size w) \<Longrightarrow> fac  w 0 n = w"
 proof (induction w)
   case Epsilon
