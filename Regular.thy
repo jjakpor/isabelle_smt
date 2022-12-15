@@ -12,9 +12,10 @@ definition concat :: "'a RegLang \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLa
 primrec pow:: "'a RegLang \<Rightarrow> nat \<Rightarrow> 'a RegLang" 
   where
    "pow s 0 = {Epsilon}"|
-   "pow s (Suc n) = {u*v |u v. u:s & v:(pow s n)}"
+   "pow s (Suc n) = concat s (pow s n)"
 
-definition star :: "'a RegLang \<Rightarrow> 'a RegLang" where "star R = {w |w n. w \<in> (pow R n)}"
+definition star :: "'a RegLang \<Rightarrow> 'a RegLang" where "star R = (\<Union>n. (pow R n))"
+
 
 lemma concat_containment: "a \<in> A \<and> b \<in> B \<Longrightarrow> (a * b) \<in> (concat A B)"
   apply(auto simp add: concat_def)
@@ -60,6 +61,11 @@ lemma deriv_concat[simp]:"deriv a (concat L R) = (concat (deriv a L) R) \<union>
   apply(auto simp add: eq_prefix_equals)
   done
 
+lemma deriv_star[simp]:"deriv a (star R) = concat (deriv a R) (star R)"
+  sorry
+
+
+
 theorem deriv_correct:"w \<in> deriv a R \<longleftrightarrow> (a . w) \<in> R"
   apply(auto simp add: deriv_def)
   done
@@ -98,7 +104,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
-      apply(auto simp add: concat_def)
+    apply(auto simp add: concat_def)
   done
   
 
@@ -114,9 +120,51 @@ primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
 
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
-  apply(induct r)
-  apply(auto)
-  sorry
+proof (induction r arbitrary: a)
+  case None
+  then show ?case by simp
+next
+  case (Const x)
+  then show ?case proof(cases x)
+    case c:Epsilon
+    then have "lang (rderiv a (Const x)) = lang (rderiv a (Const Epsilon))" by simp
+    also have "... = lang (None)" by (simp add: rderiv_def)
+    also have "... = {}" by simp
+    also have "... = deriv a (lang (Const Epsilon))" by (simp add: deriv_def)
+    finally show ?thesis by (simp add: c)
+  next
+    case c:(Con b w)
+    then have "lang (rderiv a (Const x)) = lang (rderiv a (Const (b . w)))" by simp
+    then have "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w)) \<or> (a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)" by simp
+    then show ?thesis proof
+      assume "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w))"
+      then show ?thesis by (simp add: c)
+    next
+      assume "(a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)"
+      then show ?thesis by (simp add: c)
+    qed
+  qed
+next
+  case (Union r1 r2)
+  then show ?case by simp
+next
+  case IH:(Concat r1 r2)
+  then have "(rderiv a (Concat r1 r2)) = (if nullable r1 then Union (Concat (rderiv a r1) r2) (rderiv a r2) else (Concat (rderiv a r1) r2))" by simp
+  then have "nullable r1 \<and> lang (rderiv a (Concat r1 r2)) = lang (Union (Concat (rderiv a r1) r2) (rderiv a r2)) \<or> (\<not>nullable r1) \<and> lang (rderiv a (Concat r1 r2)) = lang (Concat (rderiv a r1) r2)" by simp
+  then have "nullable r1 \<and> lang (rderiv a (Concat r1 r2)) = (lang ((Concat (rderiv a r1) r2)) \<union> (lang (rderiv a r2))) \<or>  (\<not>nullable r1) \<and> lang (rderiv a (Concat r1 r2)) = lang (Concat (rderiv a r1) r2)" by simp
+  then have "lang (rderiv a (Concat r1 r2)) = lang ((Concat (rderiv a r1) r2)) \<union> (if (nullable r1) then lang (rderiv a r2) else {})" by simp
+  also have "... = (concat (deriv a (lang r1)) (lang r2)) \<union> (if (nullable r1) then (deriv a (lang r2)) else {})" by (simp add: IH)
+  also have "... = (concat (deriv a (lang r1)) (lang r2)) \<union> (if Epsilon \<in> (lang r1) then (deriv a (lang r2)) else {})" by (simp add: nullability)
+  finally show ?case by simp
+next
+  case IH:(Star r)
+  then have "lang (rderiv a (Star r)) =  lang (Concat (rderiv a r) (Star r))" by simp
+  also have "... = concat (lang (rderiv a r)) (lang (Star r))" by (simp)
+  also have "... = concat (lang (rderiv a r)) (star (lang r))" by (simp)
+  also with IH have "... = concat (deriv a (lang r)) (star (lang r))" by (simp)
+  then show ?case by (simp)
+qed
+
 
 primrec rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   where

@@ -84,9 +84,7 @@ theorem rev_rev: "\<And> w. rev(rev w) = w"
   apply(auto)
   done
 
-lemma prefix_cut:"(a . w) = u \<longrightarrow> (EX v. u = (a . v))"
-  apply(auto)
-  done
+
 
 (* Conversion *)
 primrec of_list:: "'a list \<Rightarrow> 'a word"
