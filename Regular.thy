@@ -9,6 +9,8 @@ type_synonym 'a RegLang = "'a word set"
 (* Regular Operations *)
 definition concat :: "'a RegLang \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" where "concat R S = {u*v |u v. u:R & v:S}"
 
+definition null:: "'a RegLang \<Rightarrow> 'a RegLang" where "(null L) = (if Epsilon \<in> L then {Epsilon} else {})"
+
 primrec pow:: "'a RegLang \<Rightarrow> nat \<Rightarrow> 'a RegLang" 
   where
    "pow s 0 = {Epsilon}"|
@@ -56,8 +58,8 @@ lemma deriv_union[simp]: "deriv a (l1 \<union> l2) = (deriv a l1) \<union> (deri
   done
 
 
-lemma deriv_concat[simp]:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (if Epsilon \<in> L then (deriv a R) else {})"
-  unfolding deriv_def concat_def
+lemma deriv_concat[simp]:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
+  unfolding deriv_def concat_def null_def
   apply(auto simp add: eq_prefix_equals)
   done
 
@@ -108,6 +110,8 @@ lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   done
   
 
+definition vu:: "'a regex \<Rightarrow> 'a regex" where "vu r = (if (nullable r) then (Const Epsilon) else None)"
+
 (* Derivatives of regular languages *)
 
 primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
@@ -115,9 +119,17 @@ primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "rderiv c None = None" |
   "rderiv c (Const w) = (case w of (a . w) \<Rightarrow> if a = c then (Const w) else None | _ \<Rightarrow> None)" |
   "rderiv c (Union r1 r2) = Union (rderiv c r1) (rderiv c r2)" |
-  "rderiv c (Concat r1 r2) = (if nullable r1 then Union (Concat (rderiv c r1) r2) (rderiv c r2) else (Concat (rderiv c r1) r2))" |
+  "rderiv c (Concat r1 r2) = (Concat (rderiv c r1) r2) | (Concat (vu r1) (rderiv c r2))" |
   "rderiv c (Star r) = Concat (rderiv c r) (Star r)"
 
+
+
+lemma vu_null_iff: "lang (vu r1) = null (lang r1)"
+  unfolding vu_def null_def
+  apply(auto)
+   apply(simp add: nullability)
+    apply(simp add: nullability)
+  done
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
 proof (induction r arbitrary: a)
@@ -149,12 +161,12 @@ next
   then show ?case by simp
 next
   case IH:(Concat r1 r2)
-  then have "(rderiv a (Concat r1 r2)) = (if nullable r1 then Union (Concat (rderiv a r1) r2) (rderiv a r2) else (Concat (rderiv a r1) r2))" by simp
-  then have "nullable r1 \<and> lang (rderiv a (Concat r1 r2)) = lang (Union (Concat (rderiv a r1) r2) (rderiv a r2)) \<or> (\<not>nullable r1) \<and> lang (rderiv a (Concat r1 r2)) = lang (Concat (rderiv a r1) r2)" by simp
-  then have "nullable r1 \<and> lang (rderiv a (Concat r1 r2)) = (lang ((Concat (rderiv a r1) r2)) \<union> (lang (rderiv a r2))) \<or>  (\<not>nullable r1) \<and> lang (rderiv a (Concat r1 r2)) = lang (Concat (rderiv a r1) r2)" by simp
-  then have "lang (rderiv a (Concat r1 r2)) = lang ((Concat (rderiv a r1) r2)) \<union> (if (nullable r1) then lang (rderiv a r2) else {})" by simp
-  also have "... = (concat (deriv a (lang r1)) (lang r2)) \<union> (if (nullable r1) then (deriv a (lang r2)) else {})" by (simp add: IH)
-  also have "... = (concat (deriv a (lang r1)) (lang r2)) \<union> (if Epsilon \<in> (lang r1) then (deriv a (lang r2)) else {})" by (simp add: nullability)
+  then have "lang (rderiv a (Concat r1 r2)) = lang ((Concat (rderiv a r1) r2) | (Concat (vu r1) (rderiv a r2)))" by simp
+  also have "... = lang ((Concat (rderiv a r1) r2)) \<union> lang  (Concat (vu r1) (rderiv a r2))" by simp
+  also have "... = concat (lang (rderiv a r1)) (lang r2) \<union> concat (lang (vu r1)) (lang (rderiv a r2))" by simp
+  also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (lang (vu r1)) (deriv a (lang r2))" by (simp only: IH)
+  also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (null (lang r1)) (deriv a (lang r2))" by (simp only: vu_null_iff)
+  also have "... = deriv a (lang (Concat r1 r2))" by auto
   finally show ?case by simp
 next
   case IH:(Star r)
