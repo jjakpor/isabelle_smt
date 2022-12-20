@@ -1,11 +1,12 @@
 theory Test      
-  imports Words Regular
+  imports Words RegEx
 begin
 
 (* Trivial Word Equation *)
 lemma  "EX x. x = (of_list ''abc'')"
   apply(auto)
   done
+
 
 (* Word Equation constant RHS *)
 lemma  assumes s:"x = (of_list ''a'') \<and> y = (of_list ''c'')" shows "x * (of_list ''b'')  * y = (of_list ''abc'')"
@@ -17,6 +18,10 @@ lemma  assumes s:"x = (of_list ''b'') \<and> y = (of_list ''c'')" shows "x * (of
   apply(simp add: s)
   done
 
+(* Word Equation with two patterns *)
+lemma  assumes s:"x = (of_list ''b'') \<and> y = (of_list ''c'') \<and> z = (of_list ''cc'')" shows "x * (of_list ''b'')  * y = x*x*y \<and> y*y*(of_list ''b'')=z*x"
+  apply(simp add: s)
+  done
 
 (* Regular Memberships *)
 

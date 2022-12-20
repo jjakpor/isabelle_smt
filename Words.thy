@@ -6,8 +6,13 @@ no_notation Groups.times_class.times (infixl "*" 70)
 
 
 
-datatype 'a  word = Epsilon | Con "'a" "'a word" (infixr "." 67) 
+datatype 'a word = Epsilon | Con "'a" "'a word" (infixr "." 67) 
+print_definitions
 print_theorems
+print_defn_rules
+
+
+value "CHR ''a'' . CHR ''b'' . CHR ''c'' . Epsilon"
 
 
 (* Basic Operations *)
@@ -31,6 +36,10 @@ primrec concat:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" (infixr "
     "concat Epsilon v = v" |
     "concat (Con a u)  v = (Con a (concat u v))" 
 
+primrec concatn:: "'a word list \<Rightarrow> 'a word"
+  where
+  "concatn [] = Epsilon" |
+  "concatn (w#ws) = w*(concatn ws)"
 
 primrec rev :: "'a word \<Rightarrow> 'a word"
   where
@@ -66,6 +75,12 @@ lemma epsilon_neutrality[simp]: "w * Epsilon = w"
 
 (* Associativity of word concatenation *)
 lemma concat_associativity [simp]: "(u * v) * w = u * (v * w)" 
+  apply(induct u)
+   apply(auto)
+  done
+
+(* Associativity of word concatenation *)
+lemma concat_associativity2: "u * (v * w) = (u * v) * w" 
   apply(induct u)
    apply(auto)
   done
