@@ -54,7 +54,13 @@ lemma pow_not_zero:"n>0 \<and> w \<in> pow r n \<Longrightarrow> \<exists>m. w \
   done
 
 lemma concat_star_subset: "w \<in> concat R (star R) \<Longrightarrow> w \<in> (star R)"
-  by (smt (verit, del_insts) Regular.concat_def Regular.pow.simps(2) mem_Collect_eq star_all_pows)
+proof -
+  assume "w \<in> concat R (star R)"
+  then have "w \<in> {w |w n. w \<in> pow R (Suc n)}"  by (auto simp add: concat_def star_all_pows)
+  then have "w \<in> {w |w m. w \<in> pow R m}" by fastforce
+  then show "w \<in> (star R)" by (simp only: star_all_pows)
+qed
+
 
 lemma concat_star:"set ws \<subseteq> R \<Longrightarrow> concatn ws \<in> (star R)"
 proof (induct ws)
