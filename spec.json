@@ -1,0 +1,216 @@
+{
+    "version": "0.1",
+    "smt-lib-version": "2.6",
+    "mappings": {
+        "Core": {
+            "true": {
+                "name": "true",
+                "assoc": null,
+                "chainable": false
+            },
+            "false": {
+                "name": "true",
+                "assoc": null,
+                "chainable": false
+            },
+            "not": {
+                "name": "\\<not>",
+                "assoc": null,
+                "chainable": false
+            },
+            "=>": {
+                "name": "-->",
+                "assoc": "right",
+                "chainable": false
+            },
+            "and": {
+                "name": "\\<and>",
+                "assoc": "left",
+                "chainable": false
+            },
+            "or": {
+                "name": "\\<or>",
+                "assoc": "left",
+                "chainable": false
+            },
+            "xor": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "=": {
+                "name": "=",
+                "assoc": null,
+                "chainable": true
+            },
+            "distinct": {
+                "name": null,
+                "assoc": null,
+                "chainable": false,
+                "pairwise": true
+            },
+            "ite": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            }
+        },
+        "QF_S": {
+            "_ char": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.++": {
+                "name": "str_concat",
+                "assoc": "left",
+                "chainable": false
+            },
+            "str.len": {
+                "name": "str_len",
+                "assoc": null,
+                "chainable": false
+            },
+            "str.<": {
+                "name": null,
+                "assoc": null,
+                "chainable": true
+            },
+            "str.to_re": {
+                "name": "str_to_re",
+                "assoc": null,
+                "chainable": false
+            },
+            "str.in_re": {
+                "name": "str_in_re",
+                "assoc": null,
+                "chainable": false
+            },
+            "re.none": {
+                "name": "re_none",
+                "assoc": null,
+                "chainable": false
+            },
+            "re.all": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.allchar": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.++": {
+                "name": "re_concat",
+                "assoc": "left",
+                "chainable": false
+            },
+            "re.union": {
+                "name": "re_union",
+                "assoc": "left",
+                "chainable": false
+            },
+            "re.inter": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.*": {
+                "name": "re_star",
+                "assoc": null,
+                "chainable": false
+            },
+            "str.<=": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.at": {
+                "name": null,
+                "assoc": null,
+                "chainable": true
+            },
+            "str.substr": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.prefixof": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.suffixof": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.contains": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.indexof": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.replace": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.replace_all": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.replace_re": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "str.replace_re_all": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.comp": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.diff": {
+                "name": null,
+                "assoc": "left",
+                "chainable": false
+            },
+            "re.+": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.opt": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "re.range": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "_ re.^": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            },
+            "_ re.loop": {
+                "name": null,
+                "assoc": null,
+                "chainable": false
+            }
+        }
+    }
+}
