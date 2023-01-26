@@ -2,6 +2,7 @@ theory RegEx
   imports Regular
 begin
 
+
 (* Regular Expressions *)
 datatype 'a regex = None | Const "'a word" ("[_]") 
   | Union "'a regex" "'a regex" (infix "|" 99) 
@@ -13,6 +14,7 @@ lemma pow_neutral: "Epsilon \<in> pow s 0"
   apply(auto)
   done
 
+
 primrec lang:: "'a regex \<Rightarrow> 'a word set" 
   where
    "lang None = {}"|
@@ -20,6 +22,33 @@ primrec lang:: "'a regex \<Rightarrow> 'a word set"
    "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
    "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
    "lang (Star r) = star (lang r)"
+
+
+fun re_simp:: "'a regex \<Rightarrow> 'a regex" where
+  "re_simp (Concat (Const Epsilon) R) = re_simp R"|
+  "re_simp (Concat regex.None R) = None"|
+  "re_simp (Concat R E) = Concat (re_simp R) (re_simp E)"|
+  "re_simp (Union None  R) = re_simp R"|
+  "re_simp (Union R None) = re_simp R"|
+  "re_simp (Union R E) = Union (re_simp R) (re_simp E)"|
+  "re_simp (Star (Const Epsilon)) = (Const Epsilon)"|
+  "re_simp (Star E) = Star (re_simp E)"|
+  "re_simp r = r"
+
+lemma union_none: "lang (Union None E) = lang E"
+  apply(auto)
+  done
+
+lemma union_commutative: "lang (Union E R) = lang (Union R E)"
+  apply(auto)
+  done
+
+theorem simps_correct:"(lang (re_simp r)) = (lang r)"
+  apply(induct r)
+      apply(simp_all)
+  apply(cases)
+  sorry
+  
 
 
 
@@ -32,6 +61,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
   "nullable (Star r) = True"
 
+definition eq::"'a regex \<Rightarrow> 'a regex \<Rightarrow> bool" (infix "\<doteq>" 100) where "eq R E \<equiv> (lang R) = (lang E)"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
@@ -48,8 +78,10 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
   "vu (Concat r1 r2) = Concat (vu r1) (vu r2)" |
   "vu (Star r) = (Const Epsilon)"
 
-(* Derivatives of regular languages *)
 
+
+
+(* Derivatives of regular languages *)
 primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
   where
   "rderiv c None = None" |
@@ -59,6 +91,9 @@ primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "rderiv c (Star r) = Concat (rderiv c r) (Star r)"
 
 
+abbreviation simp_rderiv::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "simp_rderiv c R \<equiv> re_simp (rderiv c R)" 
+
+   
 
 lemma vu_null_iff: "lang (vu r) = null (lang r)"
 proof (induct r)
@@ -132,6 +167,15 @@ primrec rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "rderivw Epsilon r = r" |
   "rderivw (a . u) r = rderivw u (rderiv a r)"
 
+primrec simp_rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
+  where
+  "simp_rderivw Epsilon r = re_simp r" |
+  "simp_rderivw (a . u) r = simp_rderivw u (re_simp (rderiv a r))"
+
+
+theorem "lang (simp_rderiv w R) = lang (rderiv w R)"
+  apply (simp add: simps_correct)
+  done
 
 theorem "nullable (rderivw w r) \<Longrightarrow> w \<in> (lang r)"
 proof (induction w arbitrary: r)
@@ -162,6 +206,7 @@ next
 qed
 
 (* Define containment a nullability of derivative *)
-abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool"  (infixr "\<in>" 100) where "contains w r \<equiv> nullable (rderivw w r)" 
+abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool"  (infixr "\<in>" 100) where "contains w r \<equiv> nullable (simp_rderivw w r)"
+
 
 end
