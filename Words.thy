@@ -57,20 +57,18 @@ primrec repeat :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word"
   "repeat w (Suc n) = w * (repeat w n)"
 
 
-
-
 lemma epsi_concat[simp]: "Epsilon = u * v \<longleftrightarrow> ((u = Epsilon) \<and> (v = Epsilon))"
   apply(induct u)
   apply(auto)
   done
 
-lemma epsilon_concat_commut[simp]: "w * Epsilon = Epsilon * w"
+lemma epsilon_concat_commut: "w * Epsilon = Epsilon * w"
   apply(induct w)
    apply(auto)
   done
 
 lemma epsilon_neutrality[simp]: "w * Epsilon = w" 
-  apply(auto)
+  apply(auto simp add: epsilon_concat_commut)
   done
 
 (* Associativity of word concatenation *)
@@ -91,7 +89,7 @@ lemma eq_prefix_equals: "(a . w) = u*v \<longleftrightarrow>
 
 lemma rev_concat [simp]: "rev (w * v) = (rev v) * (rev w)"
   apply(induct_tac w)
-   apply(auto)
+   apply(auto simp add: epsilon_neutrality)
   done
  
 theorem rev_rev: "\<And> w. rev(rev w) = w"

@@ -73,7 +73,7 @@ next
 next
   case IH:(Concat r1 r2)
   then have "lang (vu (Concat r1 r2)) = concat (null (lang r1)) (null (lang r2))" using IH by simp
-  also have "... = (if Epsilon \<in> (lang (Concat r1 r2)) then {Epsilon} else {})" by (simp add: null_def concat_def)
+  also have "... = (if Epsilon \<in> (lang (Concat r1 r2)) then {Epsilon} else {})" by (simp add: null_def concat_def epsi_concat)
   finally show ?case by (simp add: null_def concat_def)
 next
   case (Star r1)
@@ -83,7 +83,7 @@ qed
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
 proof (induction r arbitrary: a)
   case None
-  then show ?case by simp
+  then show ?case by (simp add: deriv_empty)
 next
   case (Const x)
   then show ?case proof(cases x)
@@ -99,15 +99,15 @@ next
     then have "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w)) \<or> (a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)" by simp
     then show ?thesis proof
       assume "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w))"
-      then show ?thesis by (simp add: c)
+      then show ?thesis by (simp add: c deriv_const)
     next
       assume "(a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)"
-      then show ?thesis by (simp add: c)
+      then show ?thesis by (simp add: c deriv_const)
     qed
   qed
 next
   case (Union r1 r2)
-  then show ?case by simp
+  then show ?case by (simp add: deriv_union)
 next
   case IH:(Concat r1 r2)
   then have "lang (rderiv a (Concat r1 r2)) = lang ((Concat (rderiv a r1) r2) | (Concat (vu r1) (rderiv a r2)))" by simp
@@ -115,7 +115,7 @@ next
   also have "... = concat (lang (rderiv a r1)) (lang r2) \<union> concat (lang (vu r1)) (lang (rderiv a r2))" by simp
   also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (lang (vu r1)) (deriv a (lang r2))" by (simp only: IH)
   also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (null (lang r1)) (deriv a (lang r2))" by (simp only: vu_null_iff)
-  also have "... = deriv a (lang (Concat r1 r2))" by auto
+  also have "... = deriv a (lang (Concat r1 r2))" by (auto simp add: deriv_concat)
   finally show ?case by simp
 next
   case IH:(Star r)
@@ -123,7 +123,7 @@ next
   also have "... = concat (lang (rderiv a r)) (lang (Star r))" by (simp)
   also have "... = concat (lang (rderiv a r)) (star (lang r))" by (simp)
   also with IH have "... = concat (deriv a (lang r)) (star (lang r))" by (simp)
-  then show ?case by (simp)
+  then show ?case by (simp add: deriv_star)
 qed
 
 
@@ -142,7 +142,7 @@ proof (induction w arbitrary: r)
 next
   case IH:(Con a w)
   then have "nullable (rderivw (a . w)  r)" by simp
-  then have "nullable (rderivw w (rderiv a r))" by simp
+  then have "nullable (rderivw w (rderiv a r))" by (simp add: rderivw_def)
   with IH have "w \<in> lang (rderiv a r)" by auto
   then have "(a . w) \<in> (lang r)" by (simp add: rderiv_correct deriv_correct)
   then show ?case by (auto)

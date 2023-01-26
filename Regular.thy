@@ -20,6 +20,7 @@ lemma epsilon_concat_iff: "Epsilon \<in> A \<and> Epsilon \<in> B \<longleftrigh
   apply(auto simp add: concat_def)
   done
 
+
 lemma epsilon_in_const_iff: "Epsilon \<in> {x} \<longleftrightarrow> x = Epsilon"
    apply(auto)
   done
@@ -121,19 +122,19 @@ primrec derivw:: "'a word \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" whe
 
 definition null:: "'a RegLang \<Rightarrow> 'a RegLang" where "(null L) = (if Epsilon \<in> L then {Epsilon} else {})"
 
-lemma deriv_empty[simp]:"deriv a {} = {}"
+lemma deriv_empty:"deriv a {} = {}"
   apply(simp add: deriv_def)
   done
  
-lemma deriv_const[simp]:"deriv a {(b . w)} = (if a = b then {w} else {})"
+lemma deriv_const:"deriv a {(b . w)} = (if a = b then {w} else {})"
   apply(auto simp add: deriv_def)
   done
 
-lemma deriv_union[simp]: "deriv a (l1 \<union> l2) = (deriv a l1) \<union> (deriv a l2)"
+lemma deriv_union: "deriv a (l1 \<union> l2) = (deriv a l1) \<union> (deriv a l2)"
   apply(auto simp add: deriv_def)
   done
 
-lemma deriv_concat[simp]:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
+lemma deriv_concat:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
   unfolding deriv_def concat_def null_def
   apply(auto simp add: eq_prefix_equals)
   done
@@ -168,13 +169,13 @@ qed
 
 
 
-lemma deriv_star[simp]:"deriv a (star R) = concat (deriv a R) (star R)"
+lemma deriv_star:"deriv a (star R) = concat (deriv a R) (star R)"
 proof -
   have "deriv a (star R) = deriv a (star (R-{Epsilon}))" by (auto simp only: star_rm_epsilon)
   also have "... = deriv a ((concat (R-{Epsilon}) (star (R-{Epsilon}))) \<union> {Epsilon})" by (metis star_unroll)
   also have "... = (deriv a (concat (R-{Epsilon}) (star (R-{Epsilon})))) \<union> (deriv a {Epsilon})" by (simp only: deriv_union)
   also have "... = deriv a (concat (R-{Epsilon}) (star (R-{Epsilon})))" by (simp add: deriv_def)
-  also have "... = (concat (deriv a (R-{Epsilon})) (star (R-{Epsilon}))) \<union> (concat (null (R-{Epsilon})) (deriv a (star (R-{Epsilon}))))" by simp
+  also have "... = (concat (deriv a (R-{Epsilon})) (star (R-{Epsilon}))) \<union> (concat (null (R-{Epsilon})) (deriv a (star (R-{Epsilon}))))" by (simp add: deriv_concat)
   also have "... = (concat (deriv a (R-{Epsilon})) (star (R-{Epsilon}))) \<union> (concat {} (deriv a (star (R-{Epsilon}))))" by (auto simp add: null_def)
   also have "... =  (concat (deriv a (R-{Epsilon})) (star (R-{Epsilon})))" by (simp add: concat_def)
   also have "... = (concat (deriv a R) (star (R-{Epsilon})))" by (simp add: deriv_def)
