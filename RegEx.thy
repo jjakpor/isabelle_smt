@@ -9,6 +9,7 @@ datatype 'a regex = None | Const "'a word" ("[_]")
   | Concat "'a regex" "'a regex" (infix "." 100)  
   | Star "'a regex" ("_*" 200) 
   | Plus "'a regex"
+  | Any
 
 
 lemma pow_neutral: "Epsilon \<in> pow s 0"
@@ -19,6 +20,7 @@ lemma pow_neutral: "Epsilon \<in> pow s 0"
 primrec lang:: "'a regex \<Rightarrow> 'a word set" 
   where
    "lang None = {}"|
+   "lang Any = {v |a v. v = a . Epsilon}" | 
    "lang (Const w) = {w}" |
    "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
    "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
@@ -60,6 +62,7 @@ theorem simps_correct:"(lang (re_simp r)) = (lang r)"
 primrec nullable:: "'a regex \<Rightarrow> bool" 
   where
   "nullable None = False" |
+  "nullable Any = False" |
   "nullable (Const w) = (w = Epsilon)" |
   "nullable (Union r1 r2) = ((nullable r1) \<or> (nullable r2))" |
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
@@ -68,7 +71,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
-    apply(auto simp add: concat_def)
+        apply(auto simp add: concat_def)
   done
   
 
@@ -79,7 +82,9 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
   "vu None = None" |
   "vu (Union r1 r2) = Union (vu r1) (vu r2)" |
   "vu (Concat r1 r2) = Concat (vu r1) (vu r2)" |
+  "vu (Star r) = (Const Epsilon)" |
   "vu (Plus r) = vu r"|
+  "vu Any = None"
 
 
 
@@ -88,6 +93,7 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
 primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
   where
   "rderiv c None = None" |
+  "rderiv c Any = (Const Epsilon)"|
   "rderiv c (Const w) = (case w of (a . w) \<Rightarrow> if a = c then (Const w) else None | _ \<Rightarrow> None)" |
   "rderiv c (Union r1 r2) = Union (rderiv c r1) (rderiv c r2)" |
   "rderiv c (Concat r1 r2) = (Concat (rderiv c r1) r2) | (Concat (vu r1) (rderiv c r2))" |
@@ -103,6 +109,9 @@ lemma vu_null_iff: "lang (vu r) = null (lang r)"
 proof (induct r)
   case None
   then show ?case by (simp add: null_def)
+next 
+  case Any
+  then show ?case by (simp add: Regular.null_def)
 next
   case (Const x)
   then show ?case by (simp add: null_def)
@@ -126,6 +135,9 @@ lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
 proof (induction r arbitrary: a)
   case None
   then show ?case by (simp add: deriv_empty)
+next 
+  case Any
+  then show ?case by (auto simp add: deriv_def)
 next
   case (Const x)
   then show ?case proof(cases x)

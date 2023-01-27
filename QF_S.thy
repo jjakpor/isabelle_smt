@@ -11,9 +11,10 @@ abbreviation str_len:: "'a word \<Rightarrow> nat" where  "str_len w \<equiv> si
 
 (* Regular Expression Functions *)
 
-abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> RegEx.Const w"
+abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"
 abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> contains w R"
-abbreviation re_none:: "'a regex" where "re_none \<equiv> None"
+abbreviation re_none:: "'a regex" where "re_none \<equiv> regex.None"
+abbreviation re_allchar:: "'a regex" where "re_allchar \<equiv> regex.Any"
 (* missing:  re_all, re_allchar *)
 
 (* re.++ *)

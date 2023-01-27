@@ -114,7 +114,7 @@
                 "pairwise": false
             },
             "re.allchar": {
-                "mapsto": null,
+                "mapsto": "re_allchar",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
