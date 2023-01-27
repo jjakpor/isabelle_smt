@@ -1,5 +1,5 @@
 theory QF_S
-  imports RegEx Words
+  imports RegEx Words Core
 begin
 
 

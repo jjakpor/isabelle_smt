@@ -58,7 +58,7 @@
                 "pairwise": true
             },
             "ite": {
-                "mapsto": null,
+                "mapsto": "ite",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
@@ -162,13 +162,13 @@
                 "pairwise": false
             },
             "str.prefixof": {
-                "mapsto": null,
+                "mapsto": "prefixof",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
             },
             "str.suffixof": {
-                "mapsto": null,
+                "mapsto": "suffixof",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
