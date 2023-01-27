@@ -57,6 +57,16 @@ primrec repeat :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word"
   "repeat w (Suc n) = w * (repeat w n)"
 
 
+primrec starts_with::"'a word \<Rightarrow> 'a \<Rightarrow> bool"
+  where 
+  "starts_with Epsilon a = False"|
+  "starts_with (a . w) b = (a=b)"
+
+
+definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((fac w 0 (size v)) = v)"
+definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)" 
+  
+
 lemma epsi_concat[simp]: "Epsilon = u * v \<longleftrightarrow> ((u = Epsilon) \<and> (v = Epsilon))"
   apply(induct u)
   apply(auto)
