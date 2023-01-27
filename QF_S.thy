@@ -21,6 +21,7 @@ abbreviation re_concat:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex
 abbreviation re_union:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "re_union r1 r2 \<equiv> Union r1 r2"
 (* missing: re_inter, re_com, re_diff, re_plus, re_opt, re_range, re_pow, re_loop *)
 abbreviation re_star:: "'a regex \<Rightarrow>'a regex" where "re_star r \<equiv> Star r"
+abbreviation re_plus:: "'a regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> Plus r"
 
 
 end

@@ -222,7 +222,7 @@
                 "pairwise": false
             },
             "re.+": {
-                "mapsto": null,
+                "mapsto": "re_plus",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false

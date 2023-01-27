@@ -8,6 +8,7 @@ datatype 'a regex = None | Const "'a word" ("[_]")
   | Union "'a regex" "'a regex" (infix "|" 99) 
   | Concat "'a regex" "'a regex" (infix "." 100)  
   | Star "'a regex" ("_*" 200) 
+  | Plus "'a regex"
 
 
 lemma pow_neutral: "Epsilon \<in> pow s 0"
@@ -21,7 +22,8 @@ primrec lang:: "'a regex \<Rightarrow> 'a word set"
    "lang (Const w) = {w}" |
    "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
    "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
-   "lang (Star r) = star (lang r)"
+   "lang (Star r) = star (lang r)" |
+   "lang (Plus r) = concat (lang r) (star (lang r))"
 
 
 fun re_simp:: "'a regex \<Rightarrow> 'a regex" where
@@ -33,6 +35,8 @@ fun re_simp:: "'a regex \<Rightarrow> 'a regex" where
   "re_simp (Union R E) = Union (re_simp R) (re_simp E)"|
   "re_simp (Star (Const Epsilon)) = (Const Epsilon)"|
   "re_simp (Star E) = Star (re_simp E)"|
+  "re_simp (Plus (Const Epsilon)) =(Const Epsilon)"|
+  "re_simp (Plus E) = Plus (re_simp E)"|
   "re_simp r = r"
 
 lemma union_none: "lang (Union None E) = lang E"
@@ -59,9 +63,8 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
   "nullable (Const w) = (w = Epsilon)" |
   "nullable (Union r1 r2) = ((nullable r1) \<or> (nullable r2))" |
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
-  "nullable (Star r) = True"
-
-definition eq::"'a regex \<Rightarrow> 'a regex \<Rightarrow> bool" (infix "\<doteq>" 100) where "eq R E \<equiv> (lang R) = (lang E)"
+  "nullable (Star r) = True" |
+  "nullable (Plus r) = nullable r"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
@@ -76,7 +79,7 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
   "vu None = None" |
   "vu (Union r1 r2) = Union (vu r1) (vu r2)" |
   "vu (Concat r1 r2) = Concat (vu r1) (vu r2)" |
-  "vu (Star r) = (Const Epsilon)"
+  "vu (Plus r) = vu r"|
 
 
 
@@ -88,7 +91,8 @@ primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "rderiv c (Const w) = (case w of (a . w) \<Rightarrow> if a = c then (Const w) else None | _ \<Rightarrow> None)" |
   "rderiv c (Union r1 r2) = Union (rderiv c r1) (rderiv c r2)" |
   "rderiv c (Concat r1 r2) = (Concat (rderiv c r1) r2) | (Concat (vu r1) (rderiv c r2))" |
-  "rderiv c (Star r) = Concat (rderiv c r) (Star r)"
+  "rderiv c (Star r) = Concat (rderiv c r) (Star r)"|
+  "rderiv c (Plus r) = Concat (rderiv c r) (Star r)"
 
 
 abbreviation simp_rderiv::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "simp_rderiv c R \<equiv> re_simp (rderiv c R)" 
@@ -113,6 +117,9 @@ next
 next
   case (Star r1)
   then show ?case by (simp add: null_def)
+next 
+  case (Plus r1)
+  then show ?case by (metis Regular.null_def nullability nullable.simps(7) vu.simps(6))
 qed
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
@@ -159,6 +166,9 @@ next
   also have "... = concat (lang (rderiv a r)) (star (lang r))" by (simp)
   also with IH have "... = concat (deriv a (lang r)) (star (lang r))" by (simp)
   then show ?case by (simp add: deriv_star)
+next 
+  case IH:(Plus r)
+  then show ?case  by (metis Un_insert_right deriv_empty deriv_star deriv_union lang.simps(1) lang.simps(5) lang.simps(6) lang.simps(7) rderiv.simps(7) re_simp.simps(2) simps_correct star_unroll sup_bot.right_neutral) 
 qed
 
 
