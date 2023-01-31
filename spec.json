@@ -150,7 +150,7 @@
                 "pairwise": false
             },
             "str.at": {
-                "mapsto": null,
+                "mapsto": "str_at",
                 "assoc": null,
                 "chainable": true,
                 "pairwise": false
