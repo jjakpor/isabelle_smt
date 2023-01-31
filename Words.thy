@@ -5,92 +5,56 @@ begin
 no_notation Groups.times_class.times (infixl "*" 70)
 
 
-
-datatype 'a word = Epsilon | Con "'a" "'a word" (infixr "." 67) 
-print_definitions
-print_theorems
-print_defn_rules
+type_synonym 'a word = "'a list"
+abbreviation Epsilon::"'a word" ("\<epsilon>") where "Epsilon \<equiv> []" 
 
 
-value "CHR ''a'' . CHR ''b'' . CHR ''c'' . Epsilon"
 
 
 (* Basic Operations *)
 
-primrec at :: "'a word \<Rightarrow> nat \<Rightarrow> 'a option"
+fun at :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word"
   where 
-  "at Epsilon i = None" |
-  "at (a . w) i = (if i = 0 then Some a else at w (i-1))"
+  "at Epsilon i = Epsilon" |
+  "at (a # w) 0 = (a # Epsilon)"|
+  "at (a # w) (Suc n) = at w n "
 
-primrec size :: "'a word \<Rightarrow> nat"
+
+primrec concat_all:: "'a word list \<Rightarrow> 'a word"
   where
-  "size Epsilon = 0" |
-  "size (a . w) = Suc (size w)"
-
-lemma [simp]:"(at (a . w) 0) = (Some a)"
-  apply(auto)
-  done
-
-primrec concat:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" (infixr "*" 100)
-  where
-    "concat Epsilon v = v" |
-    "concat (Con a u)  v = (Con a (concat u v))" 
-
-primrec concatn:: "'a word list \<Rightarrow> 'a word"
-  where
-  "concatn [] = Epsilon" |
-  "concatn (w#ws) = w*(concatn ws)"
-
-primrec rev :: "'a word \<Rightarrow> 'a word"
-  where
-    "rev Epsilon = Epsilon" |
-    "rev (Con a u) = concat (rev u) (a . Epsilon)"
-
-primrec fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word"
-  where
-   "fac Epsilon s l  = Epsilon" |
-   "fac (Con a w) s l = (if s=0 then (Con a (fac w 0 (l-1))) else (fac w (s-1) l))"
-
-primrec repeat :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" 
-  where
-  "repeat w 0 = Epsilon" |
-  "repeat w (Suc n) = w * (repeat w n)"
+  "concat_all [] = Epsilon" |
+  "concat_all (w#ws) = w@(concat_all ws)"
 
 
-primrec starts_with::"'a word \<Rightarrow> 'a \<Rightarrow> bool"
-  where 
-  "starts_with Epsilon a = False"|
-  "starts_with (a . w) b = (a=b)"
 
+(* Basic substring relations *)
 
-definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((fac w 0 (size v)) = v)"
+definition fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" where "fac w s l = take l (drop s w)"
+definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((take (size v) w) = v)"
 definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)" 
-  
 
-lemma epsi_concat[simp]: "Epsilon = u * v \<longleftrightarrow> ((u = Epsilon) \<and> (v = Epsilon))"
-  apply(induct u)
+lemma [simp]:"fac w 0 (size w) = w"
+  unfolding fac_def
   apply(auto)
   done
 
-lemma epsilon_concat_commut: "w * Epsilon = Epsilon * w"
-  apply(induct w)
+lemma [simp]: "fac Epsilon s l = Epsilon"
+  unfolding fac_def
    apply(auto)
   done
 
-lemma epsilon_neutrality[simp]: "w * Epsilon = w" 
-  apply(auto simp add: epsilon_concat_commut)
+lemma [simp]: "length (fac w s 0) = 0"
+  apply(auto simp add: fac_def)
   done
 
-(* Associativity of word concatenation *)
-lemma concat_associativity [simp]: "(u * v) * w = u * (v * w)" 
-  apply(induct u)
-   apply(auto)
+lemma factor_embedding:"fac w s l = u \<Longrightarrow> EX x y. x@u@y = w"
+  unfolding fac_def  
+  apply (metis append_take_drop_id)
   done
 
-(* Associativity of word concatenation *)
-lemma concat_associativity2: "u * (v * w) = (u * v) * w" 
-  apply(induct u)
-   apply(auto)
+lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
+  unfolding fac_def  
+  apply (metis append_eq_conv_conj)
   done
 
 lemma eq_prefix_equals: "(a . w) = u*v \<longleftrightarrow>

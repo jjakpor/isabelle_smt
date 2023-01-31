@@ -2,6 +2,7 @@ theory RegEx
   imports Regular
 begin
 
+no_notation HOL.disj  (infixr "|" 30) 
 
 (* Regular Expressions *)
 datatype 'a regex = None | Const "'a word" ("[_]") 
@@ -20,7 +21,7 @@ lemma pow_neutral: "Epsilon \<in> pow s 0"
 primrec lang:: "'a regex \<Rightarrow> 'a word set" 
   where
    "lang None = {}"|
-   "lang Any = {v |a v. v = a . Epsilon}" | 
+   "lang Any = {v. EX a. v=a#\<epsilon>}" | 
    "lang (Const w) = {w}" |
    "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
    "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
@@ -52,7 +53,8 @@ lemma union_commutative: "lang (Union E R) = lang (Union R E)"
 theorem simps_correct:"(lang (re_simp r)) = (lang r)"
   apply(induct r)
       apply(simp_all)
-  apply(cases)
+     apply(cases)
+  apply(auto)
   sorry
   
 
@@ -71,7 +73,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
-        apply(auto simp add: concat_def)
+  apply(auto simp add: concat_def)
   done
   
 
@@ -86,15 +88,15 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
   "vu (Plus r) = vu r"|
   "vu Any = None"
 
-
-
+ 
 
 (* Derivatives of regular languages *)
-primrec rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
+fun rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" 
   where
   "rderiv c None = None" |
   "rderiv c Any = (Const Epsilon)"|
-  "rderiv c (Const w) = (case w of (a . w) \<Rightarrow> if a = c then (Const w) else None | _ \<Rightarrow> None)" |
+  "rderiv c (Const (a#w)) = (if a = c then (Const w) else None)" |
+  "rderiv c (Const \<epsilon>) = None"|
   "rderiv c (Union r1 r2) = Union (rderiv c r1) (rderiv c r2)" |
   "rderiv c (Concat r1 r2) = (Concat (rderiv c r1) r2) | (Concat (vu r1) (rderiv c r2))" |
   "rderiv c (Star r) = Concat (rderiv c r) (Star r)"|
@@ -106,93 +108,53 @@ abbreviation simp_rderiv::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" whe
    
 
 lemma vu_null_iff: "lang (vu r) = null (lang r)"
-proof (induct r)
-  case None
-  then show ?case by (simp add: null_def)
-next 
-  case Any
-  then show ?case by (simp add: Regular.null_def)
-next
-  case (Const x)
-  then show ?case by (simp add: null_def)
-next
-  case (Union r1 r2)
-  then show ?case by (simp add: null_def)
-next
-  case IH:(Concat r1 r2)
-  then have "lang (vu (Concat r1 r2)) = concat (null (lang r1)) (null (lang r2))" using IH by simp
-  also have "... = (if Epsilon \<in> (lang (Concat r1 r2)) then {Epsilon} else {})" by (simp add: null_def concat_def epsi_concat)
-  finally show ?case by (simp add: null_def concat_def)
-next
-  case (Star r1)
-  then show ?case by (simp add: null_def)
-next 
-  case (Plus r1)
-  then show ?case by (metis Regular.null_def nullability nullable.simps(7) vu.simps(6))
-qed
+  apply(induct r)
+  apply (simp_all add: Regular.null_def)
+  apply (metis concat_containment2 empty_iff epsilon_concat_iff equals0I lang.simps(3) lang.simps(6) lang.simps(7) re_simp.simps(52) re_simp.simps(60) simps_correct)
+  by (metis lang.simps(7) nullability nullable.simps(7))
+
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
-proof (induction r arbitrary: a)
+proof(induction r arbitrary: a)
   case None
   then show ?case by (simp add: deriv_empty)
-next 
-  case Any
-  then show ?case by (auto simp add: deriv_def)
 next
-  case (Const x)
+  case (Const x)  
   then show ?case proof(cases x)
-    case c:Epsilon
-    then have "lang (rderiv a (Const x)) = lang (rderiv a (Const Epsilon))" by simp
-    also have "... = lang (None)" by (simp add: rderiv_def)
-    also have "... = {}" by simp
-    also have "... = deriv a (lang (Const Epsilon))" by (simp add: deriv_def)
-    finally show ?thesis by (simp add: c)
+    case Nil
+    then show ?thesis by (simp add: deriv_def)
   next
-    case c:(Con b w)
-    then have "lang (rderiv a (Const x)) = lang (rderiv a (Const (b . w)))" by simp
-    then have "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w)) \<or> (a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)" by simp
-    then show ?thesis proof
-      assume "(a = b \<and> lang (rderiv a (Const (b . w))) = lang (Const w))"
-      then show ?thesis by (simp add: c deriv_const)
-    next
-      assume "(a \<noteq> b \<and> lang (rderiv a (Const (b . w))) = lang None)"
-      then show ?thesis by (simp add: c deriv_const)
+    case (Cons a list)
+    then show ?thesis by (simp add: deriv_const)
     qed
-  qed
 next
   case (Union r1 r2)
   then show ?case by (simp add: deriv_union)
 next
-  case IH:(Concat r1 r2)
-  then have "lang (rderiv a (Concat r1 r2)) = lang ((Concat (rderiv a r1) r2) | (Concat (vu r1) (rderiv a r2)))" by simp
-  also have "... = lang ((Concat (rderiv a r1) r2)) \<union> lang  (Concat (vu r1) (rderiv a r2))" by simp
-  also have "... = concat (lang (rderiv a r1)) (lang r2) \<union> concat (lang (vu r1)) (lang (rderiv a r2))" by simp
-  also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (lang (vu r1)) (deriv a (lang r2))" by (simp only: IH)
-  also have "... = concat (deriv a (lang r1)) (lang r2) \<union> concat (null (lang r1)) (deriv a (lang r2))" by (simp only: vu_null_iff)
-  also have "... = deriv a (lang (Concat r1 r2))" by (auto simp add: deriv_concat)
-  finally show ?case by simp
+  case (Concat r1 r2)
+  then show ?case  by (simp add: deriv_concat vu_null_iff)
 next
-  case IH:(Star r)
-  then have "lang (rderiv a (Star r)) =  lang (Concat (rderiv a r) (Star r))" by simp
-  also have "... = concat (lang (rderiv a r)) (lang (Star r))" by (simp)
-  also have "... = concat (lang (rderiv a r)) (star (lang r))" by (simp)
-  also with IH have "... = concat (deriv a (lang r)) (star (lang r))" by (simp)
+  case (Star r)
   then show ?case by (simp add: deriv_star)
-next 
-  case IH:(Plus r)
-  then show ?case  by (metis Un_insert_right deriv_empty deriv_star deriv_union lang.simps(1) lang.simps(5) lang.simps(6) lang.simps(7) rderiv.simps(7) re_simp.simps(2) simps_correct star_unroll sup_bot.right_neutral) 
+next
+  case (Plus r)
+  then show ?case by (metis deriv_concat deriv_star deriv_union inf_sup_aci(5) lang.simps(5) lang.simps(6) lang.simps(7) rderiv.simps(8) star_unroll sup.right_idem)
+next
+  case Any
+  then show ?case by (auto simp add: deriv_def)
 qed
+
 
 
 primrec rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   where
   "rderivw Epsilon r = r" |
-  "rderivw (a . u) r = rderivw u (rderiv a r)"
+  "rderivw (a#u) r = rderivw u (rderiv a r)"
 
 primrec simp_rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   where
   "simp_rderivw Epsilon r = re_simp r" |
-  "simp_rderivw (a . u) r = simp_rderivw u (re_simp (rderiv a r))"
+  "simp_rderivw (a#u) r = simp_rderivw u (re_simp (rderiv a r))"
 
 
 theorem "lang (simp_rderiv w R) = lang (rderiv w R)"
@@ -200,32 +162,18 @@ theorem "lang (simp_rderiv w R) = lang (rderiv w R)"
   done
 
 theorem "nullable (rderivw w r) \<Longrightarrow> w \<in> (lang r)"
-proof (induction w arbitrary: r)
-  case Epsilon
-  then have "nullable (rderivw Epsilon r)" by simp
-  then have "nullable r" by simp
-  then show ?case by (simp add: nullability)
-next
-  case IH:(Con a w)
-  then have "nullable (rderivw (a . w)  r)" by simp
-  then have "nullable (rderivw w (rderiv a r))" by (simp add: rderivw_def)
-  with IH have "w \<in> lang (rderiv a r)" by auto
-  then have "(a . w) \<in> (lang r)" by (simp add: rderiv_correct deriv_correct)
-  then show ?case by (auto)
-qed
+  apply(induct w arbitrary: r)
+   apply(auto simp add: nullability)
+  apply (metis deriv_correct rderiv_correct)
+  done
 
   
 theorem "w \<in> (lang r) \<Longrightarrow> nullable (rderivw w r)"
-proof (induction w arbitrary: r)
-  case Epsilon
-  then show ?case by (simp add: nullability)
-next
-  case IH:(Con a w)
-  then have "(a . w) \<in> (lang r)" by simp
-  then have "w \<in> deriv a (lang r)" by (simp add: deriv_correct)
-  then have "w \<in> lang (rderiv a r)" by (simp add: rderiv_correct)
-  then show ?case using IH by simp
-qed
+  apply(induct w arbitrary: r)
+   apply(auto simp add: nullability)
+  apply (metis deriv_correct rderiv_correct)
+  done
+
 
 (* Define containment a nullability of derivative *)
 abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool"  (infixr "\<in>" 100) where "contains w r \<equiv> nullable (simp_rderivw w r)"
