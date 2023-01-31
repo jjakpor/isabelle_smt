@@ -1,4 +1,4 @@
-theory Words        
+theory Words      
   imports Main
 begin
 
@@ -31,7 +31,7 @@ primrec concat_all:: "'a word list \<Rightarrow> 'a word"
 
 definition fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" where "fac w s l = take l (drop s w)"
 definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((take (size v) w) = v)"
-definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)" 
+definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)"
 
 lemma [simp]:"fac w 0 (size w) = w"
   unfolding fac_def
@@ -40,7 +40,7 @@ lemma [simp]:"fac w 0 (size w) = w"
 
 lemma [simp]: "fac Epsilon s l = Epsilon"
   unfolding fac_def
-   apply(auto)
+  apply(auto)
   done
 
 lemma [simp]: "length (fac w s 0) = 0"
@@ -57,27 +57,19 @@ lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
   apply (metis append_eq_conv_conj)
   done
 
-lemma eq_prefix_equals: "(a . w) = u*v \<longleftrightarrow>
-   (u = Epsilon \<and> (a . w) = v \<or> (\<exists>v'. u = (a . v') \<and> w = v'*v))"
-  by(cases u) auto
 
-lemma rev_concat [simp]: "rev (w * v) = (rev v) * (rev w)"
-  apply(induct_tac w)
-   apply(auto simp add: epsilon_neutrality)
-  done
- 
-theorem rev_rev: "\<And> w. rev(rev w) = w"
-  apply(induct_tac w)
-  apply(auto)
+definition contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "contains w v \<equiv> EX x y. w = x@v@y"
+
+lemma "contains w v \<longleftrightarrow> (EX s l. fac w s l = v)"
+  unfolding contains_def
+  apply (metis factor_embedding factorization)
   done
 
-
-
-(* Conversion *)
-primrec of_list:: "'a list \<Rightarrow> 'a word"
+primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat" 
   where
-  "of_list [] = Epsilon" |
-  "of_list (x#xs) = x . (of_list xs)"
+  "find Epsilon u = (if (u=Epsilon)then 0 else (Suc 0))" |
+  "find (a#w) u = (if (is_prefix u (a#w)) then 0 else (Suc (find w u)))"
+
 
 
 end

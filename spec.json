@@ -156,7 +156,7 @@
                 "pairwise": false
             },
             "str.substr": {
-                "mapsto": null,
+                "mapsto": "str_substr",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
@@ -174,7 +174,7 @@
                 "pairwise": false
             },
             "str.contains": {
-                "mapsto": null,
+                "mapsto": "str_contains",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
