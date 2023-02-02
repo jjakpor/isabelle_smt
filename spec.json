@@ -4,13 +4,13 @@
     "specs": {
         "Core": {
             "true": {
-                "mapsto": "true",
+                "mapsto": "True",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
             },
             "false": {
-                "mapsto": "true",
+                "mapsto": "False",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
@@ -162,13 +162,13 @@
                 "pairwise": false
             },
             "str.prefixof": {
-                "mapsto": "prefixof",
+                "mapsto": "str_prefixof",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
             },
             "str.suffixof": {
-                "mapsto": "suffixof",
+                "mapsto": "str_suffixof",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
