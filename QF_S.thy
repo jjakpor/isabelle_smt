@@ -7,7 +7,16 @@ abbreviation str_concat:: "'a word \<Rightarrow> 'a word  \<Rightarrow> 'a word"
 abbreviation str_len:: "'a word \<Rightarrow> int" where  "str_len w \<equiv> of_nat (length w)"
 abbreviation str_at:: "'a word \<Rightarrow> int \<Rightarrow> 'a word" where "str_at w i \<equiv> (at w (nat i))"
 
-abbreviation str_substr:: "'a word \<Rightarrow> int \<Rightarrow> int \<Rightarrow> 'a word"  where "str_substr a i n \<equiv>  fac a (nat i) (nat n)"
+abbreviation str_substr:: "'a word \<Rightarrow> int \<Rightarrow> int \<Rightarrow> 'a word"  where "str_substr w i n \<equiv> if (n < 0 \<or> i<0 \<or> ((nat i) \<ge> (length w))) then \<epsilon> else  fac w (nat i) (nat n)"
+
+lemma [simp]: "(n < 0 \<or> i<0 \<or> ((nat i) \<ge> (length w))) \<Longrightarrow> str_substr w i n =  \<epsilon>"
+  apply(auto)
+  done
+
+lemma [simp]: "\<not>(n < 0 \<or> i<0 \<or> ((nat i) \<ge> (length w))) \<Longrightarrow> str_substr w i n = fac w (nat i) (nat n)"
+  apply(auto)
+  done
+
 abbreviation str_prefixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_prefixof \<equiv> Words.is_prefix"
 abbreviation str_suffixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_suffixof \<equiv> Words.is_suffix"
 abbreviation str_contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
