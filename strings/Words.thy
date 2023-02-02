@@ -87,7 +87,6 @@ primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
 
 lemma find_iff_contains: "find w u = Some r \<longleftrightarrow> contains w u"
   apply(auto simp add: contains_iff_factor)
-   defer
   sorry
 
 lemma find_first_occurrence: "find w u = Some r \<Longrightarrow> \<forall>s. s<r \<longrightarrow> \<not>(is_prefix u (drop s w))"

@@ -1,7 +1,18 @@
-theory QF_S
-  imports RegEx Words Core
+theory Strings
+  imports Core "strings/RegEx" "strings/Words" 
 begin
 
+(* 
+This is the interface between SMT-LIB and the underlying the theory of strings.
+It contains mappings from SMT-LIB predicates/functions to the corresponding formalization/implementation.
+
+Predicates in SMT-LIB are defined over integers and string, whereas in the corresponding Isabelle
+theories, they are defined naturally over natural number and string.
+The conversion between integers and naturals as well as handling of edge cases 
+(as explained in the SMT-LIB standard) is performed here.
+
+Pure string predicates are defined in "strings/Words", regular expression in "strings/RegEx".
+*)
 
 abbreviation str_concat:: "'a word \<Rightarrow> 'a word  \<Rightarrow> 'a word"  where "(str_concat) u v \<equiv> u@v" 
 abbreviation str_len:: "'a word \<Rightarrow> int" where  "str_len w \<equiv> of_nat (length w)"

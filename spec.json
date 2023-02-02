@@ -64,7 +64,7 @@
                 "pairwise": false
             }
         },
-        "QF_S": {
+        "Strings": {
             "_ char": {
                 "mapsto": null,
                 "assoc": null,
