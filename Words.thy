@@ -47,6 +47,15 @@ lemma [simp]: "length (fac w s 0) = 0"
   apply(auto simp add: fac_def)
   done
 
+lemma prefix_not_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(is_prefix v w)"
+  apply(auto simp add: is_prefix_def)
+  done
+
+lemma suffix_not_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(is_suffix v w)"
+  apply(auto simp add: is_suffix_def)
+  done
+
+
 lemma factor_embedding:"fac w s l = u \<Longrightarrow> EX x y. x@u@y = w"
   unfolding fac_def  
   apply (metis append_take_drop_id)
@@ -58,12 +67,26 @@ lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
   done
 
 
-definition contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "contains w v \<equiv> EX x y. w = x@v@y"
+primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
+"contains \<epsilon> v = (v = \<epsilon>)" |
+"contains (x#u) v = ((is_prefix v (x#u)) \<or> (contains u v))" 
 
-lemma "contains w v \<longleftrightarrow> (EX s l. fac w s l = v)"
+(*definition contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "contains w v \<equiv> EX x y. w = x@v@y"
+
+lemma contains_iff_factor:"contains w v \<longleftrightarrow> (EX s l. fac w s l = v)"
   unfolding contains_def
   apply (metis factor_embedding factorization)
   done
+*)
+
+lemma contais_no_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(contains w v)"
+  apply(auto)
+  sorry
+
+lemma contains_iff_factor:"contains w v \<longleftrightarrow> (EX x y. w = x@v@y)"
+  apply(auto simp add: is_prefix_def)
+  sorry
+
 
 primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat" 
   where
