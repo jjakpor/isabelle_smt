@@ -180,7 +180,7 @@
                 "pairwise": false
             },
             "str.indexof": {
-                "mapsto": null,
+                "mapsto": "str_indexof",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false

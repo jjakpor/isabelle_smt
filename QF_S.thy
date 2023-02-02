@@ -20,8 +20,9 @@ lemma [simp]: "\<not>(n < 0 \<or> i<0 \<or> ((nat i) \<ge> (length w))) \<Longri
 abbreviation str_prefixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_prefixof \<equiv> Words.is_prefix"
 abbreviation str_suffixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_suffixof \<equiv> Words.is_suffix"
 abbreviation str_contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
+
 abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Rightarrow> int" 
-  where "str_indexof h n s \<equiv> of_nat (find h n)"
+  where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find (drop (nat s) h) n of Some r \<Rightarrow> (int r) | option.None \<Rightarrow> -1) else (-1)"
 
 (* Regular Expression Functions *)
 

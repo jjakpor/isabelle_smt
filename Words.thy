@@ -1,5 +1,5 @@
 theory Words      
-  imports Main
+  imports Main 
 begin
 
 no_notation Groups.times_class.times (infixl "*" 70)
@@ -71,13 +71,6 @@ primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
 "contains \<epsilon> v = (v = \<epsilon>)" |
 "contains (x#u) v = ((is_prefix v (x#u)) \<or> (contains u v))" 
 
-(*definition contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "contains w v \<equiv> EX x y. w = x@v@y"
-
-lemma contains_iff_factor:"contains w v \<longleftrightarrow> (EX s l. fac w s l = v)"
-  unfolding contains_def
-  apply (metis factor_embedding factorization)
-  done
-*)
 
 lemma contais_no_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(contains w v)"
   apply(auto)
@@ -88,10 +81,20 @@ lemma contains_iff_factor:"contains w v \<longleftrightarrow> (EX x y. w = x@v@y
   sorry
 
 
-primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat" 
-  where
-  "find Epsilon u = (if (u=Epsilon)then 0 else (Suc 0))" |
-  "find (a#w) u = (if (is_prefix u (a#w)) then 0 else (Suc (find w u)))"
+primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
+"find \<epsilon> v = (if (v = \<epsilon>) then Some 0 else None)"|
+"find (a#w) v = (if (is_prefix v (a#w)) then Some 0 else (case (find w v) of Some n \<Rightarrow> Some (Suc n) | None \<Rightarrow> None))"
+
+lemma find_iff_contains: "find w u = Some r \<longleftrightarrow> contains w u"
+  apply(auto simp add: contains_iff_factor)
+   defer
+  sorry
+
+lemma find_first_occurrence: "find w u = Some r \<Longrightarrow> \<forall>s. s<r \<longrightarrow> \<not>(is_prefix u (drop s w))"
+  apply (auto simp add: is_prefix_def)
+  apply (metis (full_types) find_iff_contains not_less_zero option.inject)
+  done
+
 
 
 
