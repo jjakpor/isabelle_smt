@@ -13,17 +13,19 @@ abbreviation Epsilon::"'a word" ("\<epsilon>") where "Epsilon \<equiv> []"
 
 (* Basic Operations *)
 
-fun at :: "'a word \<Rightarrow> nat \<Rightarrow> 'a word"
-  where 
-  "at Epsilon i = Epsilon" |
-  "at (a # w) 0 = (a # Epsilon)"|
-  "at (a # w) (Suc n) = at w n "
+
+primrec first:: "'a word \<Rightarrow> 'a word" where
+"first \<epsilon> = \<epsilon>"|
+"first (a#w) = a#\<epsilon>"
+
+definition at:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" where "at w i \<equiv> first (drop i w)"
 
 
 primrec concat_all:: "'a word list \<Rightarrow> 'a word"
   where
   "concat_all [] = Epsilon" |
   "concat_all (w#ws) = w@(concat_all ws)"
+
 
 
 
@@ -72,27 +74,11 @@ primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
 "contains (x#u) v = ((is_prefix v (x#u)) \<or> (contains u v))" 
 
 
-lemma contais_no_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(contains w v)"
-  apply(auto)
-  sorry
-
-lemma contains_iff_factor:"contains w v \<longleftrightarrow> (EX x y. w = x@v@y)"
-  apply(auto simp add: is_prefix_def)
-  sorry
-
 
 primrec find:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
 "find \<epsilon> v = (if (v = \<epsilon>) then Some 0 else None)"|
 "find (a#w) v = (if (is_prefix v (a#w)) then Some 0 else (case (find w v) of Some n \<Rightarrow> Some (Suc n) | None \<Rightarrow> None))"
 
-lemma find_iff_contains: "find w u = Some r \<longleftrightarrow> contains w u"
-  apply(auto simp add: contains_iff_factor)
-  sorry
-
-lemma find_first_occurrence: "find w u = Some r \<Longrightarrow> \<forall>s. s<r \<longrightarrow> \<not>(is_prefix u (drop s w))"
-  apply (auto simp add: is_prefix_def)
-  apply (metis (full_types) find_iff_contains not_less_zero option.inject)
-  done
 
 
 
