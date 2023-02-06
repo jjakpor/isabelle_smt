@@ -3,9 +3,9 @@ theory RegEx
 begin
 
 (* Regular Expressions *)
-datatype 'a regex = None | Const "'a word" ("[_]") 
-  | Union "'a regex" "'a regex" (infix "|" 99) 
-  | Concat "'a regex" "'a regex" (infix "." 100)  
+datatype 'a regex = None | Const "'a word" 
+  | Union "'a regex" "'a regex"
+  | Concat "'a regex" "'a regex"  
   | Star "'a regex" ("_*" 200) 
   | Any
 
@@ -17,7 +17,7 @@ lemma pow_neutral: "Epsilon \<in> pow s 0"
 
 primrec lang:: "'a regex \<Rightarrow> 'a word set"  where
 "lang None = {}"|
-"lang Any = {v. EX a. v=a#\<epsilon>}" | 
+"lang Any = {w. (length w) = 1}" | 
 "lang (Const w) = {w}" |
 "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
 "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|

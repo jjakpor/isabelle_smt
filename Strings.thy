@@ -90,18 +90,35 @@ abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" whe
 
 theorem in_re_correct:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)"
   by (auto simp add: re_contains_def derivative_correctness)
-  
+
 
 abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"
+theorem to_re_correct: "lang (str_to_re w) = {w}" by simp
+
 abbreviation re_none:: "'a regex" where "re_none \<equiv> regex.None"
+theorem re_none_correct: "lang re_none = {}" by simp
+
 abbreviation re_allchar:: "'a regex" where "re_allchar \<equiv> regex.Any"
+theorem re_allchar_correct: "lang re_allchar = {w. (length w) = 1}" by simp
+  
 (* missing:  re_all*)
 
 abbreviation re_concat:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"  where "re_concat r1 r2 \<equiv> RegEx.re_concat r1 r2"
+theorem re_concat_correct: "(lang (re_concat r e)) = {x@y|x y. x \<in> (lang r) \<and> y \<in> (lang e)}" 
+  by (simp add: Regular.concat_def re_concat_correct)
+
 abbreviation re_union:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "re_union r1 r2 \<equiv> RegEx.re_union r1 r2"
+theorem re_union_correct: "lang (re_union r e) = {w|w. w \<in> (lang r) \<or> w \<in> (lang e)}"
+  by (simp add: Un_def re_union_correct)
+
 (* missing: re_inter, re_com, re_diff, re_plus, re_opt, re_range, re_pow, re_loop *)
 abbreviation re_star:: "'a regex \<Rightarrow>'a regex" where "re_star r \<equiv> RegEx.re_star r"
+theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (\<exists> e. (concat (lang r) k) \<subseteq> k)"
+  by (auto simp add: re_star_correct concat_star_subset)
+  
+
 abbreviation re_plus:: "'a regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> RegEx.re_plus r"
+theorem re_plus_correct: "lang (re_plus r) = lang (re_concat r (re_star r))" by (simp add: re_plus_def)
 
 
 end
