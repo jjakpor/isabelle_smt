@@ -7,7 +7,6 @@ datatype 'a regex = None | Const "'a word" ("[_]")
   | Union "'a regex" "'a regex" (infix "|" 99) 
   | Concat "'a regex" "'a regex" (infix "." 100)  
   | Star "'a regex" ("_*" 200) 
-  | Plus "'a regex"
   | Any
 
 
@@ -22,13 +21,8 @@ primrec lang:: "'a regex \<Rightarrow> 'a word set"  where
 "lang (Const w) = {w}" |
 "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
 "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
-"lang (Star r) = star (lang r)" |
-"lang (Plus r) = concat (lang r) (star (lang r))"
+"lang (Star r) = star (lang r)" 
    
-
-
-
-  
 
 lemma union_none: "lang (Union None E) = lang E"
   apply(auto)
@@ -39,9 +33,6 @@ lemma union_commutative: "lang (Union E R) = lang (Union R E)"
   done
 
 
-
-
-
 (* A language is nullable if it accepts the empty word*)
 primrec nullable:: "'a regex \<Rightarrow> bool" 
   where
@@ -50,8 +41,7 @@ primrec nullable:: "'a regex \<Rightarrow> bool"
   "nullable (Const w) = (w = Epsilon)" |
   "nullable (Union r1 r2) = ((nullable r1) \<or> (nullable r2))" |
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
-  "nullable (Star r) = True" |
-  "nullable (Plus r) = nullable r"
+  "nullable (Star r) = True" 
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
@@ -67,10 +57,41 @@ primrec vu:: "'a regex \<Rightarrow> 'a regex" where
 "vu (Union r1 r2) = Union (vu r1) (vu r2)" |
 "vu (Concat r1 r2) = Concat (vu r1) (vu r2)" |
 "vu (Star r) = (Const Epsilon)" |
-"vu (Plus r) = vu r"|
 "vu Any = None"
 
- 
+
+fun re_union::"'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where 
+"re_union r None = r"|
+"re_union None r = r"|
+"re_union r e = Union r e"
+
+lemma re_union_correct:"(lang (re_union r e)) = (lang (Union r e))"
+  apply(cases \<open>(r, e)\<close> rule: re_union.cases)
+  by (auto)
+
+fun re_concat:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
+"re_concat r (Const \<epsilon>) = r"|
+"re_concat (Const \<epsilon>) r = r"|
+"re_concat None r = None"|
+"re_concat r None = None"|
+"re_concat r e = Concat r e"
+
+lemma re_concat_correct:"(lang (re_concat r e)) = (lang (Concat r e))"
+  apply(cases \<open>(r, e)\<close> rule: re_concat.cases)
+  by (auto simp add: concat_def)
+
+fun re_star:: "'a regex \<Rightarrow> 'a regex" where
+"re_star (Const \<epsilon>) = (Const \<epsilon>)"|
+"re_star None = (Const \<epsilon>)"|
+"re_star r = Star r"
+
+lemma re_star_correct:"(lang (re_star r)) = (lang (Star r))"
+  apply(cases r rule: re_star.cases)
+  by (auto simp add: star_of_epsilon star_of_empty)
+  
+
+definition re_plus::"'a regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> re_concat r (re_star r)"
+
 
 (* Derivatives of regular languages *)
 fun rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
@@ -78,10 +99,9 @@ fun rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
 "rderiv c Any = (Const Epsilon)"|
 "rderiv c (Const (a#w)) = (if a = c then (Const w) else None)" |
 "rderiv c (Const \<epsilon>) = None"|
-"rderiv c (Union r1 r2) = Union (rderiv c r1) (rderiv c r2)" |
-"rderiv c (Concat r1 r2) = (Union (Concat (rderiv c r1) r2)  (Concat (vu r1) (rderiv c r2)))" |
-"rderiv c (Star r) = Concat (rderiv c r) (Star r)"|
-"rderiv c (Plus r) = Concat (rderiv c r) (Star r)"
+"rderiv c (Union r1 r2) = re_union (rderiv c r1) (rderiv c r2)" |
+"rderiv c (Concat r1 r2) = (re_union (re_concat (rderiv c r1) r2)  (re_concat (vu r1) (rderiv c r2)))" |
+"rderiv c (Star r) = re_concat (rderiv c r) (re_star r)"
 
 
 
@@ -89,7 +109,7 @@ lemma vu_null_iff: "lang (vu r) = null (lang r)"
   apply(induct r)
    apply (simp_all add: Regular.null_def)
    apply (simp add: Regular.concat_def)
-  using epsilon_concat_iff by fastforce
+  done
 
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
@@ -107,16 +127,13 @@ next
     qed
 next
   case (Union r1 r2)
-  then show ?case by (simp add: deriv_union)
+  then show ?case by (simp add: deriv_union re_union_correct)
 next
   case (Concat r1 r2)
-  then show ?case  by (simp add: deriv_concat vu_null_iff)
+  then show ?case  by (simp add: deriv_concat vu_null_iff re_concat_correct re_union_correct)
 next
   case (Star r)
-  then show ?case by (simp add: deriv_star)
-next
-  case (Plus r)
-  then show ?case by (metis deriv_concat deriv_star deriv_union inf_sup_aci(5) lang.simps(5) lang.simps(6) lang.simps(7) rderiv.simps(8) star_unroll sup.right_idem)
+  then show ?case by (simp add: deriv_star re_star_correct re_union_correct re_concat_correct)
 next
   case Any
   then show ?case by (auto simp add: deriv_def)
@@ -143,57 +160,12 @@ lemma contains_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rde
   apply (metis deriv_correct rderiv_correct )
   done
 
-theorem derivw_nullable_iff_contained: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
+theorem derivative_correctness: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
   by (auto simp add: contains_derivw_nullable derivw_nullable_contains)
 
-
-(* Normalization of Regex *)
-
-fun normalize:: "'a regex \<Rightarrow> 'a regex" where
-"normalize (Concat (Const Epsilon) R) = normalize R"|
-"normalize (Concat regex.None R) = None"|
-"normalize (Concat R E) = Concat (normalize R) (normalize E)"|
-"normalize (Union None  R) = normalize R"|
-"normalize (Union R None) = normalize R"|
-"normalize (Union R E) = Union (normalize R) (normalize E)"|
-"normalize (Star (Const Epsilon)) = (Const Epsilon)"|
-"normalize (Star E) = Star (normalize E)"|
-"normalize (Plus (Const Epsilon)) =(Const Epsilon)"|
-"normalize (Plus E) = Plus (normalize E)"|
-"normalize r = r"
-
-
-
-theorem normalization_correct:"(lang (normalize r)) = (lang r)"
-  sorry
-
-abbreviation rderiv_normalize::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "rderiv_normalize c R \<equiv> normalize (rderiv c R)" 
-
-primrec rderivw_normalize:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
-  where
-  "rderivw_normalize Epsilon r = normalize r" |
-  "rderivw_normalize (a#u) r = rderivw_normalize u (normalize (rderiv a r))"
-
-lemma norm_derivw_nullable_contains:"nullable (rderivw_normalize w r) \<Longrightarrow> w \<in> (lang r)"
-  apply(induct w arbitrary: r)
-   apply(auto simp add: nullability)
-   apply (simp add: normalization_correct)
-  by (metis deriv_correct normalization_correct rderiv_correct)
-  
-lemma contains_norm_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rderivw_normalize w r)"
-  apply(induct w arbitrary: r)
-   apply(auto simp add: nullability)
-  by (simp_all add: deriv_correct normalization_correct rderiv_correct)+
-  
-
-
-theorem norm_derivw_nullable_iff_contained: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw_normalize w r)"
-  apply (auto simp add: contains_norm_derivw_nullable norm_derivw_nullable_contains)
-  done
-  
   
 
 (* Define containment a nullability of derivative *)
-definition re_contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "re_contains w r \<equiv> nullable (rderivw_normalize w r)"
+definition re_contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "re_contains w r \<equiv> nullable (rderivw w r)"
 
 end

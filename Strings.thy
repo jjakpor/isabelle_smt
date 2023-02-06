@@ -89,7 +89,7 @@ abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Ri
 abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> re_contains w R"
 
 theorem in_re_correct:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)"
-  by (auto simp add: re_contains_def norm_derivw_nullable_iff_contained)
+  by (auto simp add: re_contains_def derivative_correctness)
   
 
 abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"
@@ -97,11 +97,11 @@ abbreviation re_none:: "'a regex" where "re_none \<equiv> regex.None"
 abbreviation re_allchar:: "'a regex" where "re_allchar \<equiv> regex.Any"
 (* missing:  re_all*)
 
-abbreviation re_concat:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"  where "re_concat r1 r2 \<equiv> Concat r1 r2"
-abbreviation re_union:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "re_union r1 r2 \<equiv> Union r1 r2"
+abbreviation re_concat:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"  where "re_concat r1 r2 \<equiv> RegEx.re_concat r1 r2"
+abbreviation re_union:: "'a regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "re_union r1 r2 \<equiv> RegEx.re_union r1 r2"
 (* missing: re_inter, re_com, re_diff, re_plus, re_opt, re_range, re_pow, re_loop *)
-abbreviation re_star:: "'a regex \<Rightarrow>'a regex" where "re_star r \<equiv> Star r"
-abbreviation re_plus:: "'a regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> Plus r"
+abbreviation re_star:: "'a regex \<Rightarrow>'a regex" where "re_star r \<equiv> RegEx.re_star r"
+abbreviation re_plus:: "'a regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> RegEx.re_plus r"
 
 
 end
