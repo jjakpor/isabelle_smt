@@ -27,18 +27,7 @@ primrec lang:: "'a regex \<Rightarrow> 'a word set"  where
    
 
 
-fun re_simp:: "'a regex \<Rightarrow> 'a regex" where
-"re_simp (Concat (Const Epsilon) R) = re_simp R"|
-"re_simp (Concat regex.None R) = None"|
-"re_simp (Concat R E) = Concat (re_simp R) (re_simp E)"|
-"re_simp (Union None  R) = re_simp R"|
-"re_simp (Union R None) = re_simp R"|
-"re_simp (Union R E) = Union (re_simp R) (re_simp E)"|
-"re_simp (Star (Const Epsilon)) = (Const Epsilon)"|
-"re_simp (Star E) = Star (re_simp E)"|
-"re_simp (Plus (Const Epsilon)) =(Const Epsilon)"|
-"re_simp (Plus E) = Plus (re_simp E)"|
-"re_simp r = r"
+
   
 
 lemma union_none: "lang (Union None E) = lang E"
@@ -49,13 +38,7 @@ lemma union_commutative: "lang (Union E R) = lang (Union R E)"
   apply(auto)
   done
 
-theorem simps_correct:"(lang (re_simp r)) = (lang r)"
-  apply(induct r)
-      apply(simp_all)
-     apply(cases)
-  apply(auto)
-  sorry
-  
+
 
 
 
@@ -101,7 +84,6 @@ fun rderiv :: "'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
 "rderiv c (Plus r) = Concat (rderiv c r) (Star r)"
 
 
-abbreviation simp_rderiv::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "simp_rderiv c R \<equiv> re_simp (rderiv c R)" 
 
 lemma vu_null_iff: "lang (vu r) = null (lang r)"
   apply(induct r)
@@ -147,32 +129,71 @@ primrec rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   "rderivw Epsilon r = r" |
   "rderivw (a#u) r = rderivw u (rderiv a r)"
 
-primrec simp_rderivw:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
-  where
-  "simp_rderivw Epsilon r = re_simp r" |
-  "simp_rderivw (a#u) r = simp_rderivw u (re_simp (rderiv a r))"
 
-
-theorem "lang (simp_rderiv w R) = lang (rderiv w R)"
-  apply (simp add: simps_correct)
-  done
-
-theorem "nullable (rderivw w r) \<Longrightarrow> w \<in> (lang r)"
+lemma derivw_nullable_contains:"nullable (rderivw w r) \<Longrightarrow> w \<in> (lang r)"
   apply(induct w arbitrary: r)
    apply(auto simp add: nullability)
   apply (metis deriv_correct rderiv_correct)
   done
 
   
-theorem "w \<in> (lang r) \<Longrightarrow> nullable (rderivw w r)"
+lemma contains_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rderivw w r)"
   apply(induct w arbitrary: r)
    apply(auto simp add: nullability)
-  apply (metis deriv_correct rderiv_correct)
+  apply (metis deriv_correct rderiv_correct )
   done
 
+theorem derivw_nullable_iff_contained: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
+  by (auto simp add: contains_derivw_nullable derivw_nullable_contains)
+
+
+(* Normalization of Regex *)
+
+fun normalize:: "'a regex \<Rightarrow> 'a regex" where
+"normalize (Concat (Const Epsilon) R) = normalize R"|
+"normalize (Concat regex.None R) = None"|
+"normalize (Concat R E) = Concat (normalize R) (normalize E)"|
+"normalize (Union None  R) = normalize R"|
+"normalize (Union R None) = normalize R"|
+"normalize (Union R E) = Union (normalize R) (normalize E)"|
+"normalize (Star (Const Epsilon)) = (Const Epsilon)"|
+"normalize (Star E) = Star (normalize E)"|
+"normalize (Plus (Const Epsilon)) =(Const Epsilon)"|
+"normalize (Plus E) = Plus (normalize E)"|
+"normalize r = r"
+
+
+
+theorem normalization_correct:"(lang (normalize r)) = (lang r)"
+  sorry
+
+abbreviation rderiv_normalize::"'a \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "rderiv_normalize c R \<equiv> normalize (rderiv c R)" 
+
+primrec rderivw_normalize:: "'a word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
+  where
+  "rderivw_normalize Epsilon r = normalize r" |
+  "rderivw_normalize (a#u) r = rderivw_normalize u (normalize (rderiv a r))"
+
+lemma norm_derivw_nullable_contains:"nullable (rderivw_normalize w r) \<Longrightarrow> w \<in> (lang r)"
+  apply(induct w arbitrary: r)
+   apply(auto simp add: nullability)
+   apply (simp add: normalization_correct)
+  by (metis deriv_correct normalization_correct rderiv_correct)
+  
+lemma contains_norm_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rderivw_normalize w r)"
+  apply(induct w arbitrary: r)
+   apply(auto simp add: nullability)
+  by (simp_all add: deriv_correct normalization_correct rderiv_correct)+
+  
+
+
+theorem norm_derivw_nullable_iff_contained: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw_normalize w r)"
+  apply (auto simp add: contains_norm_derivw_nullable norm_derivw_nullable_contains)
+  done
+  
+  
 
 (* Define containment a nullability of derivative *)
-abbreviation contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool"  (infixr "\<in>" 100) where "contains w r \<equiv> nullable (simp_rderivw w r)"
-
+definition contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "contains w r \<equiv> nullable (rderivw_normalize w r)"
 
 end

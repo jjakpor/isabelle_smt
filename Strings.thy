@@ -88,7 +88,9 @@ abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Ri
 
 abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> contains w R"
 
-
+theorem in_re_correct:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)"
+  by (auto simp add: contains_def norm_derivw_nullable_iff_contained)
+  
 
 abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"
 abbreviation re_none:: "'a regex" where "re_none \<equiv> regex.None"
