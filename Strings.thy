@@ -45,7 +45,7 @@ theorem substr_correct1:
   apply(simp add: int_eq_iff min_def)+
   apply(auto simp add:  int_ops(6) le_nat_iff)+
    apply (metis append.right_neutral append_take_drop_id le_nat_iff length_take less_le_not_le min_def nat_diff_distrib nat_int)
-  by (smt (verit, best) append_take_drop_id le_nat_iff length_take min_def)
+  by (metis append_take_drop_id drop_eq_Nil int_nat_eq length_drop length_take linorder_not_le min_def nat_0_iff nat_minus_as_int not_less_iff_gr_or_eq take_eq_Nil2 zless_nat_conj)
 
 theorem substr_correct2:
 fixes m::"int" and n::"int"
@@ -86,10 +86,10 @@ abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Ri
 
 (* Regular Expression Functions *)
 
-abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> contains w R"
+abbreviation str_in_re:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> re_contains w R"
 
 theorem in_re_correct:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)"
-  by (auto simp add: contains_def norm_derivw_nullable_iff_contained)
+  by (auto simp add: re_contains_def norm_derivw_nullable_iff_contained)
   
 
 abbreviation str_to_re:: "'a word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"

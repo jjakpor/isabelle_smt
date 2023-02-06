@@ -194,6 +194,6 @@ theorem norm_derivw_nullable_iff_contained: "w \<in> (lang r) \<longleftrightarr
   
 
 (* Define containment a nullability of derivative *)
-definition contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "contains w r \<equiv> nullable (rderivw_normalize w r)"
+definition re_contains:: "'a word \<Rightarrow> 'a regex \<Rightarrow> bool" where "re_contains w r \<equiv> nullable (rderivw_normalize w r)"
 
 end
