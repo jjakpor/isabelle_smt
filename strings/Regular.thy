@@ -106,7 +106,7 @@ proof (induct n arbitrary: r  w)
   then show ?case by (metis Regular.pow.simps(1) concat_all.simps(1) empty_set empty_subsetI singletonD) 
 next
   case IH:(Suc n)
-  then have "w \<in> concat r (pow r n)" by simp
+  then have "w \<in> concat r (pow r n)" by force
   then have "\<exists>x y. w = x@y \<and> x \<in> r \<and> y \<in> (pow r n)" by (force simp add: concat_def)
   then have "\<exists>x y. w = x@y \<and> (\<exists>ws. y = concat_all ws \<and> set ws \<subseteq> r)" using IH by fastforce
   then have "\<exists>ws. w = concat_all ws \<and> set ws \<subseteq> r" by (metis IH.hyps \<open>\<exists>x y. w = x @ y \<and> x \<in> r \<and> y \<in> pow r n\<close> concat_all.simps(2) insert_subset list.set(2))

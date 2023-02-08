@@ -58,31 +58,53 @@ abbreviation str_suffixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" w
 
 (* Correctness of prefixof: \<lbrakk>str.prefixof\<rbrakk>(v, w) = true iff w = vx₂ for some word x *)
 theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x)"
-  unfolding is_prefix_def
-  apply(auto)
-  by (metis append_take_drop_id)
+  by (simp add: prefix_iff_startswith)suffix
+
 
 (* Correctness of suffixof: \<lbrakk>str.suffixof\<rbrakk>(v, w) = true iff w = xv₂ for some word x *)
 theorem suffix_correct: "str_suffixof v w \<longleftrightarrow> (EX x. w = x@v)"
-  unfolding  is_suffix_def is_prefix_def
-  apply(auto)
-  by (metis append_take_drop_id rev_append rev_rev_ident)
+  by (simp add: suffix_iff_endswith) 
 
 abbreviation str_contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
 
-(* Correctness of contains: \<lbrakk>str.contains\<rbrakk>(w, v) = true  iff  w = xvy₃ for some words x,y*)
-theorem contain_correct: "Words.contains w v \<longleftrightarrow>(EX x y. w = x@v@y)"
-  apply(induct w)
-   apply(simp)
-  apply(auto simp add: Strings.prefixof_correct)
-     apply (metis append_Cons)
-    apply (metis append_Cons)
-   apply (metis append_Nil)
-  by (metis append_eq_Cons_conv)
+
+value "List.enumerate 0 ''abc''"
   
 
 abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Rightarrow> int" 
-  where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find (drop (nat s) h) n of Some r \<Rightarrow> (int r) | option.None \<Rightarrow> -1) else (-1)"
+  where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find (drop (nat s) h) n of Some r \<Rightarrow> (int r+s) | option.None \<Rightarrow> -1) else (-1)"
+
+
+
+(* This is what SMT-LIB states *)
+lemma "str_contains w v \<and> i \<ge> 0 \<Longrightarrow> (str_indexof w v i) \<ge> 0"
+  sorry
+
+
+lemma x: assumes "i\<ge>0 \<and> str_contains (drop (nat i) w) v" shows  "(str_indexof w v i) \<ge> i"
+  apply(auto simp add: assms)
+  using assms find_iff_contains by force
+
+
+
+
+
+
+theorem indexof_correct1:
+  fixes i::"int"
+  shows "0 \<le> i \<and> str_contains (drop (nat i) w) v \<Longrightarrow> EX n x y. ((str_indexof w v i) = n \<and> i\<le>n \<and> w = x@v@y \<and> n = (int (length x)))"
+  apply(auto simp add: find_iff_contains)
+  sledgehammer
+  
+    
+
+theorem indexof_correct2: 
+   "(i < 0 \<or> \<not>(str_contains (drop (nat i) w) v)) \<Longrightarrow> (str_indexof w v i) = -1"
+  apply(auto simp add: find_iff_contains)
+  done
+  
+  
+  
 
 (* Regular Expression Functions *)
 
