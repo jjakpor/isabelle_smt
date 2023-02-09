@@ -58,7 +58,7 @@ abbreviation str_suffixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" w
 
 (* Correctness of prefixof: \<lbrakk>str.prefixof\<rbrakk>(v, w) = true iff w = vx₂ for some word x *)
 theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x)"
-  by (simp add: prefix_iff_startswith)suffix
+  by (simp add: prefix_iff_startswith)
 
 
 (* Correctness of suffixof: \<lbrakk>str.suffixof\<rbrakk>(v, w) = true iff w = xv₂ for some word x *)
@@ -72,38 +72,38 @@ value "List.enumerate 0 ''abc''"
   
 
 abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Rightarrow> int" 
-  where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find (drop (nat s) h) n of Some r \<Rightarrow> (int r+s) | option.None \<Rightarrow> -1) else (-1)"
+  where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find_index (drop (nat s) h) n of Some r \<Rightarrow> (int r+s) | option.None \<Rightarrow> -1) else (-1)"
+
+
+lemma x:"str_indexof h n s = i \<and> i\<ge>0 \<Longrightarrow> i-s \<ge> 0"
+  unfolding find_index_def
+  apply(auto)
+  by (simp add: option.split_sel_asm)
+
+
+(* This is what SMT-LIB states but it is invalid
+   lemma "str_contains w v \<and> i \<ge> 0 \<Longrightarrow> (str_indexof w v i) \<ge> 0
+
+  nitpick finds counterexample.
+  Instead, it is supposed to be the following:
+*)
+lemma indexof_if_suffix_contains: assumes "i\<ge>0 \<and> str_contains (drop (nat i) w) v" shows  "(str_indexof w v i) \<ge> i"
+  using assms contains_iff_find_index by force
 
 
 
-(* This is what SMT-LIB states *)
-lemma "str_contains w v \<and> i \<ge> 0 \<Longrightarrow> (str_indexof w v i) \<ge> 0"
-  sorry
 
-
-lemma x: assumes "i\<ge>0 \<and> str_contains (drop (nat i) w) v" shows  "(str_indexof w v i) \<ge> i"
-  apply(auto simp add: assms)
-  using assms find_iff_contains by force
-
-
-
-
-
-
-theorem indexof_correct1:
+theorem indexof_correct_1:
   fixes i::"int"
-  shows "0 \<le> i \<and> str_contains (drop (nat i) w) v \<Longrightarrow> EX n x y. ((str_indexof w v i) = n \<and> i\<le>n \<and> w = x@v@y \<and> n = (int (length x)))"
-  apply(auto simp add: find_iff_contains)
-  sledgehammer
-  
-    
+  shows "i\<ge>0 \<and> i \<le> int (length w) \<and> str_contains (drop (nat i) w) v \<Longrightarrow> EX n x y. ((str_indexof w v i) = n \<and>  w = x@v@y \<and> (int (length x)) = n)"
+  apply(auto simp add: option.case_eq_if)
+   apply (simp add: contains_iff_find_index)
+  using find_index_of_suffix  by (metis int_nat_eq nat_le_iff of_nat_add)
 
 theorem indexof_correct2: 
    "(i < 0 \<or> \<not>(str_contains (drop (nat i) w) v)) \<Longrightarrow> (str_indexof w v i) = -1"
-  apply(auto simp add: find_iff_contains)
-  done
-  
-  
+  using contains_iff_find_index by fastforce
+ 
   
 
 (* Regular Expression Functions *)
