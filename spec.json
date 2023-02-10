@@ -234,7 +234,7 @@
                 "pairwise": false
             },
             "re.range": {
-                "mapsto": null,
+                "mapsto": "re_range",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false

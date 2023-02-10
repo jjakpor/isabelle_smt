@@ -17,7 +17,14 @@ primrec first:: "'a word \<Rightarrow> 'a word" where
 "first \<epsilon> = \<epsilon>"|
 "first (a#w) = a#\<epsilon>"
 
+
+lemma singleton_word: "(length w) = 1 \<Longrightarrow> EX a. w = a#\<epsilon>"
+  by (simp add: length_Suc_conv)
+
 definition at:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" where "at w i \<equiv> first (drop i w)"
+
+lemma at_overflow[simp]: "i \<ge> length w \<Longrightarrow> at w i = \<epsilon>" 
+  by (simp add: at_def)
 
 primrec concat_all:: "'a word list \<Rightarrow> 'a word"
   where
