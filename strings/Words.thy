@@ -216,7 +216,54 @@ proof -
   then show ?thesis   by (simp)
 qed
 
-(* lemma find_index_returns_first: "find_index w v = Some r \<Longrightarrow> \<forall>r'. r'<r \<and> w = x@v@y \<longrightarrow> (length x) \<noteq> r'"  *)
+
+definition replace::"'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
+"replace w v u = (case find_index w v of Some i \<Rightarrow> (take i w)@u@(drop (i+(length v)) w) | None => w)"
+
+lemma replace_epsilon: "replace w \<epsilon> u = u@w"
+  unfolding replace_def
+  apply(auto simp add: option.case_eq_if)
+   apply (simp add: find_fac_epsilon find_index_def)
+  by (metis append_Nil drop0 find_prefix_index_is_0 option.sel take_eq_Nil2)
+
+lemma replace_id_if_not_contains:"\<not>contains w v \<Longrightarrow> replace w v u = w"
+  unfolding replace_def
+  using contains_iff_find_index  by fastforce
+
+
+theorem replace_factor: "contains w v \<Longrightarrow> \<exists>x y. (w= x@v@y \<and> replace w v u = x@u@y)"
+  unfolding replace_def find_index_def
+  apply(auto simp add: option.case_eq_if prefix_iff_startswith)
+  apply (metis contains_iff_find_fac option.distinct(1))
+  by (metis append.assoc append_eq_conv_conj find_returns_factor_at length_additive)
+  
+  
+
+theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. replace w v u = x@u@y \<and> w = x@v@y \<and> (\<forall> x'. (length x') < (length x) \<longrightarrow> (\<nexists>y'. w=x'@v@y'))"
+  apply(auto simp add: contains_iff_find_index)
+  unfolding replace_def
+  apply(auto simp add: option.case_eq_if contains_iff_find_index)
+   apply (metis contains_iff_find_index option.distinct(1))
+  proof -
+    assume a: "contains w v"
+    obtain aas :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" and aasa :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+      f2: "\<forall>as asa n. length (aas n asa as) = n \<and> aas n asa as @ asa @ aasa n asa as = as \<or> find_index as asa \<noteq> Some n"
+      by (metis (no_types) find_finds_factor)
+    obtain nn :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat" where
+      f3: "find_index w v = Some (nn v w)"
+      using a by (meson contains_iff_find_index)
+    then have "drop (nn v w + length v) w = aasa (nn v w) v w"
+      using f2 by (metis append.assoc append_eq_conv_conj length_additive)
+    then show "\<exists>as asa. take (the (find_index w v)) w @ u @ drop (the (find_index w v) + length v) w = as @ u @ asa \<and> w = as @ v @ asa \<and> (\<forall>asa. length asa < length as \<longrightarrow> (\<forall>as. w \<noteq> asa @ v @ as))"
+      using f3 f2 by (metis append_eq_conv_conj find_index_returns_first option.sel)
+  qed
+  
+  
+  
+  
+
+  
+
  
 
 end

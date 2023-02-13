@@ -105,6 +105,13 @@ theorem indexof_correct2:
   using contains_iff_find_index by fastforce
  
   
+abbreviation str_replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where "str_replace \<equiv> replace"
+
+theorem replace_correct1: "\<not>str_contains w v \<Longrightarrow> str_replace w v u = w" by (simp add: replace_id_if_not_contains)
+theorem replace_correct2: "str_contains w v \<Longrightarrow> \<exists>x y. str_replace w v u = x@u@y \<and> w = x@v@y \<and> (\<forall> x'. (length x') < (length x) \<longrightarrow> (\<nexists>y'. w=x'@v@y'))"
+  by(auto simp only: replace_first_factor)
+  
+  
 
 (* Regular Expression Functions *)
 
@@ -141,7 +148,7 @@ theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> 
 abbreviation re_plus:: "'a::linorder regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> RegEx.re_plus r"
 theorem re_plus_correct: "lang (re_plus r) = lang (re_concat r (re_star r))" by (simp add: re_plus_def)
 
-(* missing: re_inter, re_com, re_diff, re_plus, re_opt, re_range, re_pow, re_loop *)
+(* missing: re_inter, re_com, re_diff,  re_opt,  re_pow, re_loop *)
 fun re_range:: "'a::linorder word \<Rightarrow> 'a::linorder word \<Rightarrow> 'a regex" where 
 "re_range (l#\<epsilon>) (u#\<epsilon>) = RegEx.re_range l u"|
 "re_range _ _ = RegEx.None"
