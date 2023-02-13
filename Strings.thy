@@ -91,8 +91,6 @@ lemma indexof_if_suffix_contains: assumes "i\<ge>0 \<and> str_contains (drop (na
   using assms contains_iff_find_index by force
 
 
-
-
 theorem indexof_correct_1:
   fixes i::"int"
   shows "i\<ge>0 \<and> i \<le> int (length w) \<and> str_contains (drop (nat i) w) v \<Longrightarrow> EX n x y. ((str_indexof w v i) = n \<and>  w = x@v@y \<and> (int (length x)) = n)"
@@ -103,8 +101,8 @@ theorem indexof_correct_1:
 theorem indexof_correct2: 
    "(i < 0 \<or> \<not>(str_contains (drop (nat i) w) v)) \<Longrightarrow> (str_indexof w v i) = -1"
   using contains_iff_find_index by fastforce
- 
-  
+
+
 abbreviation str_replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where "str_replace \<equiv> replace"
 
 theorem replace_correct1: "\<not>str_contains w v \<Longrightarrow> str_replace w v u = w" by (simp add: replace_id_if_not_contains)
