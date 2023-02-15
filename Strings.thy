@@ -1,6 +1,35 @@
 theory Strings
-  imports Core "strings/RegEx" "strings/Words" 
+  imports Core "strings/RegEx" "strings/Words"  HOL.Typedef
 begin
+
+typedef uc = "{x::nat.  32\<le> x \<and> x \<le> 196607}" morphisms as_nat uc_char by auto
+setup_lifting type_definition_uc
+code_datatype uc_char
+
+instantiation uc::linorder begin
+lift_definition less_eq_uc:: "uc\<Rightarrow>uc\<Rightarrow>bool" is "(\<le>)::(nat \<Rightarrow> nat \<Rightarrow> bool)" .
+lift_definition less_uc::"uc\<Rightarrow>uc\<Rightarrow>bool" is "(<)::(nat \<Rightarrow> nat \<Rightarrow> bool)".
+instance proof
+  fix x y z:: uc
+  show "(x < y) = (x \<le> y \<and> \<not> y \<le> x)" using less_eq_uc.rep_eq less_uc.rep_eq by auto
+  show "x\<le>x"  by (simp add: less_eq_uc.rep_eq)
+  show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"  using less_eq_uc.rep_eq by auto
+  show "x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y"  by (simp add: as_nat_inject less_eq_uc.rep_eq)
+  show "x \<le> y \<or> y \<le> x"  using less_eq_uc.rep_eq by auto 
+qed
+end
+
+
+instantiation uc::equal begin 
+lift_definition equal_uc:: "uc\<Rightarrow>uc\<Rightarrow>bool" is "\<lambda> a b. (as_nat a) = (as_nat b)" .
+instance  by (standard, auto simp add: equal_uc_def as_nat_inject)
+end
+
+
+
+type_synonym uc_string = "uc word"
+
+
 
 (* 
 This is the interface between SMT-LIB and the underlying the theory of strings.
@@ -14,12 +43,14 @@ The conversion between integers and naturals as well as handling of edge cases
 Pure string predicates are defined in "strings/Words", regular expression in "strings/RegEx".
 *)
 
-abbreviation str_concat:: "'a word \<Rightarrow> 'a word  \<Rightarrow> 'a word"  where "(str_concat) u v \<equiv> u@v" 
-abbreviation str_len:: "'a word \<Rightarrow> int" where  "str_len w \<equiv> of_nat (length w)"
+abbreviation str_concat:: "uc_string \<Rightarrow> uc_string  \<Rightarrow> uc_string"  where "(str_concat) u v \<equiv> u@v" 
 
 
-abbreviation str_at:: "'a word \<Rightarrow> int \<Rightarrow> 'a word" where "str_at w i \<equiv> if i \<ge> 0 then (at w (nat i)) else \<epsilon>"
-abbreviation str_substr:: "'a word \<Rightarrow> int \<Rightarrow> int \<Rightarrow> 'a word"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then  fac w (nat m) (nat n) else \<epsilon>"
+abbreviation str_len:: "uc_string \<Rightarrow> int" where  "str_len w \<equiv> of_nat (length w)"
+
+
+abbreviation str_at:: "uc_string \<Rightarrow> int \<Rightarrow> uc_string" where "str_at w i \<equiv> if i \<ge> 0 then (at w (nat i)) else \<epsilon>"
+abbreviation str_substr:: "uc_string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> uc_string"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then  fac w (nat m) (nat n) else \<epsilon>"
 
 (* Correctness of at: \<lbrakk>str.at\<rbrakk>(w, n) = \<lbrakk>str.substr\<rbrakk>(w, n, 1) *)
 theorem at_correct: "str_at w n = str_substr w n 1"
@@ -53,8 +84,8 @@ shows "\<not>(0\<le>m \<and> m < (int (length w)) \<and> 0 < n) \<Longrightarrow
   unfolding fac_def by auto
   
 
-abbreviation str_prefixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_prefixof \<equiv> Words.is_prefix"
-abbreviation str_suffixof:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_suffixof \<equiv> Words.is_suffix"
+abbreviation str_prefixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_prefixof \<equiv> Words.is_prefix"
+abbreviation str_suffixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_suffixof \<equiv> Words.is_suffix"
 
 (* Correctness of prefixof: \<lbrakk>str.prefixof\<rbrakk>(v, w) = true iff w = vx₂ for some word x *)
 theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x)"
@@ -65,13 +96,13 @@ theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x
 theorem suffix_correct: "str_suffixof v w \<longleftrightarrow> (EX x. w = x@v)"
   by (simp add: suffix_iff_endswith) 
 
-abbreviation str_contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
+abbreviation str_contains:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
 
 
 value "List.enumerate 0 ''abc''"
   
 
-abbreviation str_indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> int \<Rightarrow> int" 
+abbreviation str_indexof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> int \<Rightarrow> int" 
   where "str_indexof h n s \<equiv> if s \<ge> 0 then (case find_index (drop (nat s) h) n of Some r \<Rightarrow> (int r+s) | option.None \<Rightarrow> -1) else (-1)"
 
 
@@ -103,7 +134,7 @@ theorem indexof_correct2:
   using contains_iff_find_index by fastforce
 
 
-abbreviation str_replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where "str_replace \<equiv> replace"
+abbreviation str_replace:: "uc_string \<Rightarrow> uc_string \<Rightarrow> uc_string \<Rightarrow> uc_string" where "str_replace \<equiv> replace"
 
 theorem replace_correct1: "\<not>str_contains w v \<Longrightarrow> str_replace w v u = w" by (simp add: replace_id_if_not_contains)
 theorem replace_correct2: "str_contains w v \<Longrightarrow> \<exists>x y. str_replace w v u = x@u@y \<and> w = x@v@y \<and> (\<forall> x'. (length x') < (length x) \<longrightarrow> (\<nexists>y'. w=x'@v@y'))"
@@ -113,41 +144,41 @@ theorem replace_correct2: "str_contains w v \<Longrightarrow> \<exists>x y. str_
 
 (* Regular Expression Functions *)
 
-abbreviation str_in_re:: "'a::linorder word \<Rightarrow> 'a regex \<Rightarrow> bool" where "str_in_re w R \<equiv> re_contains w R"
+abbreviation str_in_re:: "uc_string \<Rightarrow> uc regex \<Rightarrow> bool" where "str_in_re w R \<equiv> re_contains w R"
 
 theorem in_re_correct:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)"
   by (auto simp add: re_contains_def derivative_correctness)
 
 
-abbreviation str_to_re:: "'a::linorder word \<Rightarrow> 'a regex" where "str_to_re w \<equiv> regex.Const w"
+abbreviation str_to_re:: "uc_string \<Rightarrow> uc regex" where "str_to_re w \<equiv> regex.Const w"
 theorem to_re_correct: "lang (str_to_re w) = {w}" by simp
 
-abbreviation re_none:: "'a::linorder regex" where "re_none \<equiv> regex.None"
+abbreviation re_none:: "uc regex" where "re_none \<equiv> regex.None"
 theorem re_none_correct: "lang re_none = {}" by simp
 
-abbreviation re_allchar:: "'a::linorder regex" where "re_allchar \<equiv> regex.Any"
+abbreviation re_allchar:: "uc regex" where "re_allchar \<equiv> regex.Any"
 theorem re_allchar_correct: "lang re_allchar = {w. (length w) = 1}" by simp
   
 (* missing:  re_all*)
 
-abbreviation re_concat:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"  where "re_concat r1 r2 \<equiv> RegEx.re_concat r1 r2"
+abbreviation re_concat:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex"  where "re_concat r1 r2 \<equiv> RegEx.re_concat r1 r2"
 theorem re_concat_correct: "(lang (re_concat r e)) = {x@y|x y. x \<in> (lang r) \<and> y \<in> (lang e)}" 
   by (simp add: Regular.concat_def re_concat_correct)
 
-abbreviation re_union:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where "re_union r1 r2 \<equiv> RegEx.re_union r1 r2"
+abbreviation re_union:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex" where "re_union r1 r2 \<equiv> RegEx.re_union r1 r2"
 theorem re_union_correct: "lang (re_union r e) = {w|w. w \<in> (lang r) \<or> w \<in> (lang e)}"
   by (simp add: Un_def re_union_correct)
 
 
-abbreviation re_star:: "'a::linorder regex \<Rightarrow>'a regex" where "re_star r \<equiv> RegEx.re_star r"
-theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (\<exists> e. (concat (lang r) k) \<subseteq> k)"
+abbreviation re_star:: "uc regex \<Rightarrow>uc regex" where "re_star r \<equiv> RegEx.re_star r"
+theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (concat (lang r) k) \<subseteq> k"
   by (auto simp add: re_star_correct concat_star_subset)
   
-abbreviation re_plus:: "'a::linorder regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> RegEx.re_plus r"
+abbreviation re_plus:: "uc regex \<Rightarrow> uc regex" where "re_plus r \<equiv> RegEx.re_plus r"
 theorem re_plus_correct: "lang (re_plus r) = lang (re_concat r (re_star r))" by (simp add: re_plus_def)
 
 (* missing: re_inter, re_com, re_diff,  re_opt,  re_pow, re_loop *)
-fun re_range:: "'a::linorder word \<Rightarrow> 'a::linorder word \<Rightarrow> 'a regex" where 
+fun re_range:: "uc_string \<Rightarrow> uc_string \<Rightarrow> uc regex" where 
 "re_range (l#\<epsilon>) (u#\<epsilon>) = RegEx.re_range l u"|
 "re_range _ _ = RegEx.None"
 

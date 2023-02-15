@@ -1,5 +1,5 @@
 theory Words      
-  imports Main "HOL-Library.Sublist"
+  imports Main "HOL-Library.Sublist" "HOL-Library.List_Lexorder"
 begin
 
 no_notation Groups.times_class.times (infixl "*" 70)
@@ -7,7 +7,6 @@ no_notation Groups.times_class.times (infixl "*" 70)
 
 type_synonym 'a word = "'a list"
 abbreviation Epsilon::"'a word" ("\<epsilon>") where "Epsilon \<equiv> []" 
-
 
 
 (* Basic Operations *)
@@ -81,10 +80,8 @@ lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
 lemma factor_size_bound:"w = x@v@y \<Longrightarrow> (length v) \<le> (length w)"
   by auto
 
-fun strip_n:: "nat \<Rightarrow> 'a word \<Rightarrow> 'a word" where
-"strip_n 0 w = w"|
-"strip_n n \<epsilon> = \<epsilon>"|
-"strip_n (Suc n) (a#w) = strip_n n w"
+
+
 
 
 
@@ -178,7 +175,7 @@ lemma contains_iff_find_fac: "(EX u. find_fac w v = Some u) \<longleftrightarrow
 
 lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> EX x y. w = x@v@y \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'@v@y'))"
   apply(auto simp add:Words.find_fac_def)  
-  sorry
+  oops
   
  
 
@@ -220,7 +217,8 @@ qed
 
 lemma find_index_returns_first: "find_index w v = Some r \<Longrightarrow> \<forall>x. (length x) < r \<longrightarrow> (\<nexists>y. w = x@v@y)" 
   apply(auto simp add:find_index_def option.case_eq_if split:if_splits)
-  using find_fac_returns_first  by (metis length_additive less_diff_conv nat_add_left_cancel_less prefix_iff_startswith)
+  sorry
+  
   
 
 theorem find_prefix_is_word: "find_fac (v@u) v = Some (v@u)"
