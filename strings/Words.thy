@@ -22,6 +22,7 @@ lemma singleton_word: "(length w) = 1 \<Longrightarrow> EX a. w = a#\<epsilon>"
 
 definition at:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" where "at w i \<equiv> first (drop i w)"
 
+
 lemma at_overflow[simp]: "i \<ge> length w \<Longrightarrow> at w i = \<epsilon>" 
   by (simp add: at_def)
 
@@ -57,20 +58,19 @@ lemma [simp]: "length (fac w s 0) = 0"
   done
 
 
-lemma prefix_not_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(is_prefix v w)"
+lemma prefix_not_shorter:"(length w) < (length v) \<Longrightarrow> \<not>(is_prefix v w)"
   apply(auto simp add: is_prefix_def)
   done
 
 
-lemma suffix_not_shorter[simp]:"(length w) < (length v) \<Longrightarrow> \<not>(is_suffix v w)"
-  apply(auto simp add: is_suffix_def)
-  done
+lemma suffix_not_shorter:"(length w) < (length v) \<Longrightarrow> \<not>(is_suffix v w)"
+  by (auto simp add: is_suffix_def prefix_not_shorter)
+  
 
 
 lemma factor_embedding:"fac w s l = u \<Longrightarrow> EX x y. x@u@y = w"
   unfolding fac_def  
-  apply (metis append_take_drop_id)
-  done
+  by (metis append_take_drop_id)
 
 lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
   unfolding fac_def  
@@ -79,10 +79,6 @@ lemma factorization:"w = x@u@y \<Longrightarrow> EX s l. fac w s l = u"
 
 lemma factor_size_bound:"w = x@v@y \<Longrightarrow> (length v) \<le> (length w)"
   by auto
-
-
-
-
 
 
 
@@ -96,13 +92,13 @@ lemma prefix_iff_startswith: "is_prefix u w \<longleftrightarrow> (EX r. w = u@r
   apply(auto simp add: is_prefix_def)
   by (metis append_take_drop_id)
 
-lemma prefix_refl[simp]:"is_prefix w w" by (auto simp add: is_prefix_def)
+lemma prefix_refl:"is_prefix w w" by (auto simp add: is_prefix_def)
 
 lemma suffix_iff_endswith: "is_suffix u w \<longleftrightarrow> (EX r. w = r@u)"
   apply(auto simp add: is_prefix_def is_suffix_def)
   by (metis append_take_drop_id rev_append rev_rev_ident)
 
-lemma suffix_refl[simp]:"is_suffix w w" by (auto simp add: is_suffix_def)
+lemma suffix_refl:"is_suffix w w" by (auto simp add: is_suffix_def prefix_refl)
 
 
 primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
@@ -146,7 +142,7 @@ lemma suffixes_rev_set:"x \<in> set (rev (suffixes w)) \<Longrightarrow> is_suff
 lemma first_suffix_is_word:"rev (suffixes w)!0 = w"
   by (metis Nil_is_rev_conv hd_conv_nth hd_rev last_suffixes suffixes_not_Nil)
 
-lemma find_prefix[simp]: "find_fac (v@w) v = Some (v@w)"
+lemma find_prefix: "find_fac (v@w) v = Some (v@w)"
   apply(auto simp add: find_fac_def)
   by (auto simp add: find_Some_iff first_suffix_is_word prefix_iff_startswith)
  
@@ -172,12 +168,52 @@ lemma contains_iff_find_fac: "(EX u. find_fac w v = Some u) \<longleftrightarrow
   by (metis find_None_iff2 find_fac_def in_set_suffixes option.exhaust_sel prefix_iff_startswith set_rev suffix_def)
 
 
+lemma suffixes_count: "length (suffixes w) = (length w)+1"
+  apply(induct_tac w)
+  by(auto)
 
-lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> EX x y. w = x@v@y \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'@v@y'))"
-  apply(auto simp add:Words.find_fac_def)  
-  oops
-  
- 
+lemma suffixes_rev_count[simp]: "length (rev (suffixes w)) = (length (suffixes w))"
+  by auto
+
+value "length ((suffixes ''abc'')!1)"
+
+lemma suffix_length: "i < length (suffixes w) \<Longrightarrow> length ((suffixes w)!i) = i"
+  apply(auto)
+  apply(induct w)
+  by(auto simp add: nth_append)
+
+value "length ((rev (suffixes ''abc''))!1)"
+
+lemma suffix_rev_length: "i < length (rev (suffixes w)) \<Longrightarrow> length ((rev (suffixes w))!i) = (length w) - i"
+  apply(auto)
+  apply(induct w)
+  by (auto simp add: suffix_length  less_Suc_eq_0_disj  rev_nth, auto simp add: suffix_length)
+
+lemma suffix_if:"v = rev ((suffixes w))!j \<and> j < length (rev ((suffixes w))) \<longleftrightarrow> (\<exists>x. w = x@v \<and> (length x) = j)"
+  apply(auto)
+  using length_additive  apply (metis add_diff_cancel_right' add_diff_inverse_nat length_rev length_suffixes not_less_eq nth_mem suffix_iff_endswith suffix_rev_length suffixes_rev_set)
+  by (simp add: first_suffix_is_word nth_append suffixes_append)
+
+
+lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> EX x y. w = x@v@y \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'@v@y'))" 
+proof -
+  assume a:"find_fac w v = Some s" 
+  then have "\<exists>i<length (rev (suffixes w)). (is_prefix v) ((rev (suffixes w))!i) \<and> s = (rev (suffixes w))!i \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))" by (simp only: find_fac_def find_Some_iff)
+  then have "\<exists> i. i<length (rev (suffixes w)) \<and> (is_prefix v) ((rev (suffixes w))!i) \<and>  s = (rev (suffixes w))!i \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))" by auto
+  then have "\<exists> i. i<length (rev (suffixes w)) \<and> (\<exists>x y. w = x@v@y \<and> (length x) = (length w)-(length s)) \<and> s = (rev (suffixes w))!i \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))"  by (metis a find_returns_factor_at)
+  then have "\<exists> i. i<length (rev (suffixes w)) \<and> (\<exists>x y. w = x@v@y \<and> (length x) = (length w)-(length s)) \<and> (length s) = (length w) - i \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))"  using suffix_rev_length  by blast
+  then have "\<exists> i. i<length (rev (suffixes w)) \<and> (\<exists>x y. w = x@v@y \<and> (length x) = (length w)-((length w) - i)) \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))" by metis
+  then have "\<exists> i. i<length (rev (suffixes w)) \<and> (\<exists>x y. w = x@v@y \<and> (length x) = i) \<and> (\<forall>j<i. \<not> (is_prefix v) ((rev (suffixes w))!j))" by (metis diff_diff_cancel length_suffixes linorder_not_le not_less_eq suffixes_rev_count)
+  then have "EX i x y. i<length (rev (suffixes w)) \<and> w = x@v@y \<and> (length x) = i \<and> (\<forall>j. j<(length x) \<longrightarrow> \<not> (is_prefix v) ((rev (suffixes w))!j))" by auto
+  then have "EX i x y. i<length (rev (suffixes w)) \<and>  w = x@v@y \<and> (\<forall>j. j<(length x) \<longrightarrow> j< i \<and> (\<nexists>y'.  rev ((suffixes w))!j = v@y'))"   by (metis prefix_iff_startswith) 
+  then have "EX i x y.  w = x@v@y \<and> (\<forall>j. j<(length x) \<longrightarrow>  (\<nexists>y'. j< length (rev (suffixes w)) \<and> rev ((suffixes w))!j = v@y'))"  by auto
+  then have "EX i x y.  w = x@v@y \<and> (\<forall>j. j<(length x) \<longrightarrow>  (\<nexists>y' x'.  w = x'@v@y'\<and> (length x') = j))" using suffix_if  by metis
+  then have "EX i x y.  w = x@v@y \<and> (\<forall>x'. (length x')<(length x) \<longrightarrow>  (\<nexists>y'. w = x'@v@y'))" by auto
+  then have "EX x y. w = x@v@y \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'@v@y'))" by auto
+  then show ?thesis .
+qed
+
+
 
 lemma fac_retains:"find_fac w v = Some r \<Longrightarrow> EX r'. find_fac (u@w) v = Some r'"
   apply(auto simp add: find_fac_def)
@@ -188,6 +224,8 @@ lemma fac_retains:"find_fac w v = Some r \<Longrightarrow> EX r'. find_fac (u@w)
 
 definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
 "find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
+
+
 
 lemma find_finds_factor:"find_index w v = Some r \<Longrightarrow> EX x y. w = x@v@y \<and> (length x) = r"
   unfolding find_index_def
@@ -215,11 +253,15 @@ proof -
   then show ?thesis   by (simp)
 qed
 
-lemma find_index_returns_first: "find_index w v = Some r \<Longrightarrow> \<forall>x. (length x) < r \<longrightarrow> (\<nexists>y. w = x@v@y)" 
-  apply(auto simp add:find_index_def option.case_eq_if split:if_splits)
+
+lemma find_index_returns_first: "find_index w v = Some s \<Longrightarrow> \<forall>x. (length x) < s \<longrightarrow> (\<nexists>y. w = x@v@y)" 
+  unfolding find_index_def
+  apply(simp add: option.case_eq_if split: if_splits) 
+  sledgehammer
   sorry
   
   
+   
 
 theorem find_prefix_is_word: "find_fac (v@u) v = Some (v@u)"
   by (auto simp add:  find_fac_def  prefix_iff_startswith find_Some_iff first_suffix_is_word)
@@ -228,6 +270,15 @@ theorem find_prefix_index_is_0: "find_index (v@u) v = Some 0"
   unfolding find_index_def
   using find_prefix_is_word by (metis diff_self_eq_0 option.simps(5))
  
+
+primrec add_option:: "nat option \<Rightarrow> nat \<Rightarrow> nat option" where
+"add_option None _ = None"|
+"add_option (Some x) y = Some (x + y)"
+
+lemma add_option_is_0:"add_option x y = (Some 0) \<Longrightarrow> x = (Some 0) \<and> y = 0"  
+  apply(auto)
+   apply (metis add_option.simps(1) add_option.simps(2) option.collapse option.sel zero_eq_add_iff_both_eq_0)
+  by (metis (full_types) add_option.simps(1) add_option.simps(2) option.collapse option.sel zero_eq_add_iff_both_eq_0)
 
 
 definition replace::"'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where

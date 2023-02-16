@@ -1,10 +1,11 @@
 theory Strings
-  imports Core "strings/RegEx" "strings/Words"  HOL.Typedef
+  imports Core "strings/RegEx" "strings/Words"  "HOL-Library.Numeral_Type"
 begin
 
-typedef uc = "{x::nat.  32\<le> x \<and> x \<le> 196607}" morphisms as_nat uc_char by auto
+typedef uc = "{x::nat. x\<le> 196607}" morphisms as_nat uc_char by auto
 setup_lifting type_definition_uc
 code_datatype uc_char
+
 
 instantiation uc::linorder begin
 lift_definition less_eq_uc:: "uc\<Rightarrow>uc\<Rightarrow>bool" is "(\<le>)::(nat \<Rightarrow> nat \<Rightarrow> bool)" .
@@ -177,7 +178,7 @@ theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> 
 abbreviation re_plus:: "uc regex \<Rightarrow> uc regex" where "re_plus r \<equiv> RegEx.re_plus r"
 theorem re_plus_correct: "lang (re_plus r) = lang (re_concat r (re_star r))" by (simp add: re_plus_def)
 
-(* missing: re_inter, re_com, re_diff,  re_opt,  re_pow, re_loop *)
+(* missing: re_inter, re_com, re_diff,  re_pow, re_loop *)
 fun re_range:: "uc_string \<Rightarrow> uc_string \<Rightarrow> uc regex" where 
 "re_range (l#\<epsilon>) (u#\<epsilon>) = RegEx.re_range l u"|
 "re_range _ _ = RegEx.None"
@@ -190,6 +191,7 @@ theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<
   apply(cases \<open>(l, u)\<close> rule:re_range.cases)
   by (auto split: if_splits)
   
-
+abbreviation re_opt::"uc regex \<Rightarrow> uc regex" where "re_opt r \<equiv> re_union (Const \<epsilon>) r"
+abbreviation re_pow::"uc regex \<Rightarrow> nat \<Rightarrow> uc regex" where
 
 end
