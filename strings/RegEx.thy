@@ -8,6 +8,7 @@ datatype 'a::linorder regex = None | Const "'a word"
   | Union "'a regex" "'a regex"
   | Concat "'a regex" "'a regex"  
   | Star "'a regex"
+  | Inter "'a regex" "'a regex"
   | Any
   | Range "'a" "'a"
 
@@ -20,7 +21,9 @@ primrec lang:: "'a::linorder regex \<Rightarrow> 'a word set"  where
 "lang (Union r1 r2) = (lang r1) Un (lang r2)" |
 "lang (Concat r1 r2) = concat (lang r1) (lang r2)"|
 "lang (Star r) = star (lang r)" |
-"lang (Range l u) = {(v#\<epsilon>)|v. l \<le> v \<and> v \<le> u}"
+"lang (Range l u) = {(v#\<epsilon>)|v. l \<le> v \<and> v \<le> u}"|
+"lang (Inter r1 r2) = (lang r1) \<inter> (lang r2)"
+
 
 
 
@@ -58,7 +61,14 @@ lemma re_star_correct:"(lang (re_star r)) = (lang (Star r))"
 
 definition re_plus::"'a::linorder regex \<Rightarrow> 'a regex" where "re_plus r \<equiv> re_concat r (re_star r)"
 
+fun re_inter:: "'a::linorder regex \<Rightarrow> 'a::linorder regex \<Rightarrow> 'a regex" where
+"re_inter None r = None"|
+"re_inter r None = None"|
+"re_inter r e = Inter r e"
 
+lemma re_inter_correct: "lang (re_inter r1 r2) = lang (Inter r1 r2)"
+  apply(cases \<open>(r1, r2)\<close> rule: re_inter.cases)
+  by auto
 
 fun re_range::  "'a::linorder \<Rightarrow> 'a::linorder \<Rightarrow> 'a regex" where
 "re_range l u = (if (l < u) then (Range l u) else (if l = u then (Const (l#\<epsilon>)) else None))"
@@ -75,6 +85,7 @@ primrec nullable:: "'a::linorder regex \<Rightarrow> bool"
   "nullable Any = False" |
   "nullable (Const w) = (w = Epsilon)" |
   "nullable (Union r1 r2) = ((nullable r1) \<or> (nullable r2))" |
+  "nullable (Inter r1 r2) = ((nullable r1) \<and> (nullable r2))"|
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
   "nullable (Star r) = True"|
   "nullable (Range _ _) = False"
@@ -91,6 +102,7 @@ primrec vu:: "'a::linorder regex \<Rightarrow> 'a regex" where
 "vu (Const w) = (if w = Epsilon then (Const w) else None)" |
 "vu None = None" |
 "vu (Union r1 r2) = Union (vu r1) (vu r2)" |
+"vu (Inter r1 r2) = Inter (vu r1) (vu r2)" |
 "vu (Concat r1 r2) = Concat (vu r1) (vu r2)" |
 "vu (Star r) = (Const Epsilon)" |
 "vu Any = None"|
@@ -107,6 +119,7 @@ fun rderiv :: "'a::linorder \<Rightarrow> 'a::linorder regex \<Rightarrow> 'a::l
 "rderiv c (Const (a#w)) = (if a = c then (Const w) else None)" |
 "rderiv c (Const \<epsilon>) = None"|
 "rderiv c (Union r1 r2) = re_union (rderiv c r1) (rderiv c r2)" |
+"rderiv c (Inter r1 r2) = re_inter (rderiv c r1) (rderiv c r2)"|
 "rderiv c (Concat r1 r2) = (re_union (re_concat (rderiv c r1) r2)  (re_concat (vu r1) (rderiv c r2)))" |
 "rderiv c (Star r) = re_concat (rderiv c r) (re_star r)"|
 "rderiv c (Range l u) = (if (l\<le>c \<and> c \<le> u) then (Const \<epsilon>) else None)"
@@ -148,6 +161,9 @@ next
 next
   case (Concat r1 r2)
   then show ?case  by (simp add: deriv_concat vu_null_iff re_concat_correct re_union_correct)
+next
+  case (Inter r1 r2)
+  then show ?case by (auto simp add: deriv_inter re_inter_correct)
 next
   case (Star r)
   then show ?case by (simp add: deriv_star re_star_correct re_union_correct re_concat_correct)

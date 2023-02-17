@@ -192,6 +192,6 @@ theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<
   by (auto split: if_splits)
   
 abbreviation re_opt::"uc regex \<Rightarrow> uc regex" where "re_opt r \<equiv> re_union (Const \<epsilon>) r"
-abbreviation re_pow::"uc regex \<Rightarrow> nat \<Rightarrow> uc regex" where
+
 
 end

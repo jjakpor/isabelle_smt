@@ -152,6 +152,9 @@ lemma deriv_union: "deriv a (l1 \<union> l2) = (deriv a l1) \<union> (deriv a l2
   apply(auto simp add: deriv_def)
   done
 
+lemma deriv_inter: "deriv a (l1 \<inter> l2) = (deriv a l1) \<inter> (deriv a l2)"
+  by (auto simp add: deriv_def)
+
 lemma deriv_concat:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
   unfolding deriv_def concat_def null_def
   apply(simp)
