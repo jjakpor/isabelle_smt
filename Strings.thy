@@ -170,6 +170,10 @@ abbreviation re_union:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex"
 theorem re_union_correct: "lang (re_union r e) = {w|w. w \<in> (lang r) \<or> w \<in> (lang e)}"
   by (simp add: Un_def re_union_correct)
 
+abbreviation re_inter:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex" where "re_inter  \<equiv> RegEx.re_inter"
+theorem re_inter_correct: "lang (re_inter r1 r2) = {w|w. w\<in> (lang r1) \<and> w \<in> (lang r2)}"
+  by (auto simp add: re_inter_correct)
+  
 
 abbreviation re_star:: "uc regex \<Rightarrow>uc regex" where "re_star r \<equiv> RegEx.re_star r"
 theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (concat (lang r) k) \<subseteq> k"
@@ -192,6 +196,6 @@ theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<
   by (auto split: if_splits)
   
 abbreviation re_opt::"uc regex \<Rightarrow> uc regex" where "re_opt r \<equiv> re_union (Const \<epsilon>) r"
-abbreviation re_pow::"uc regex \<Rightarrow> nat \<Rightarrow> uc regex" where
+
 
 end

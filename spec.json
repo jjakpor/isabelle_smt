@@ -132,8 +132,8 @@
                 "pairwise": false
             },
             "re.inter": {
-                "mapsto": null,
-                "assoc": null,
+                "mapsto": "re_inter",
+                "assoc": "left",
                 "chainable": false,
                 "pairwise": false
             },
