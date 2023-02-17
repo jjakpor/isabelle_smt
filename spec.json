@@ -210,7 +210,7 @@
                 "pairwise": false
             },
             "re.comp": {
-                "mapsto": null,
+                "mapsto": "re_comp",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false

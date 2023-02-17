@@ -30,6 +30,8 @@ end
 
 type_synonym uc_string = "uc word"
 
+definition UC:: "uc_string set" where "UC = {w. True}"
+lemma "UNIV = UC"  by (simp add: UC_def)
 
 
 (* 
@@ -197,5 +199,9 @@ theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<
   
 abbreviation re_opt::"uc regex \<Rightarrow> uc regex" where "re_opt r \<equiv> re_union (Const \<epsilon>) r"
 
+abbreviation re_comp::"uc regex \<Rightarrow> uc regex" where "re_comp \<equiv> RegEx.re_comp"
+theorem re_comp_correct: "lang (re_comp r) = UC - (lang r)"
+  by (auto simp add: re_comp_correct UC_def)
+  
 
 end

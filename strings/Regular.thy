@@ -54,7 +54,8 @@ proof -
   then show "EX n. \<epsilon> \<in> pow R n" by (rule exI)
 qed
 
-
+lemma singleton_set: "{w. (length w) = 1} = {v| a v. v = a#\<epsilon>}"
+  using singleton_word by auto
 
 lemma epsilon_in_pow:"\<exists>n. \<epsilon> \<in> pow r n"
 proof -
@@ -78,7 +79,11 @@ lemma star_of_empty: "star {} = {\<epsilon>}"
   apply(auto simp add: star_def)
    apply (metis Regular.pow.simps(1) bot_nat_0.not_eq_extremum empty_iff pow_n_empty singletonD)
   by (simp add: epsilon_in_pow)
-  
+
+lemma concat_trans: "w \<in> r \<longleftrightarrow> a#w \<in> concat {a#\<epsilon>} r"
+  by (auto simp add: concat_def)
+
+
 
 lemma concat_star_subset: "w \<in> concat R (star R) \<Longrightarrow> w \<in> (star R)"
 proof -
@@ -93,6 +98,24 @@ lemma concat_star:"set ws \<subseteq> R \<Longrightarrow> concat_all ws \<in> (s
   apply(induct ws)
    apply (auto simp add: concat_containment1 concat_star_subset)
   done
+
+lemma star_subsumes: "v@w \<in> concat {v} (star r) \<and> v \<in> r \<Longrightarrow> v@w \<in> (star r)"
+  apply(auto)
+  by (metis concat_containment1 concat_containment2 concat_star_subset singletonD)
+  
+lemma star_of_singletons_is_univ: "x \<in> star {v|v a. v = a#\<epsilon>}" 
+proof (induct x)
+  case Nil
+  then show ?case by auto
+next
+  case (Cons a x)
+  then have "x \<in> star {uu. \<exists>a v. uu = v \<and> v = a # \<epsilon>}" by auto
+  then have "x \<in> star {v |v b. v = b#\<epsilon>}" by auto
+  then have fac1:"a#x \<in> concat {a#\<epsilon>} (star {v |v b. v = b#\<epsilon>})" using concat_trans by fastforce
+  have fac2: "(a#\<epsilon>) \<in> {v |v b. v = b#\<epsilon>}" by simp
+  from fac1 fac2 have "a#x \<in>  (star {v |v b. v = b#\<epsilon>})" using  star_subsumes  by (metis concat_containment2 singletonD)
+  then show ?case by auto
+qed
 
 lemma star_remove_epsilons:"set ws \<subseteq> R \<Longrightarrow> \<exists>wsa. concat_all ws = concat_all wsa \<and> set wsa \<subseteq> R - {\<epsilon>}" (is "?P \<Longrightarrow> \<exists> vs. ?Q vs")
 proof
@@ -139,6 +162,12 @@ primrec derivw:: "'a word \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" whe
   "derivw (a#w) R = derivw w (deriv a R)"
 
 definition null:: "'a RegLang \<Rightarrow> 'a RegLang" where "(null L) = (if \<epsilon> \<in> L then {\<epsilon>} else {})"
+
+lemma null_empty[simp]: "null {} = {}" 
+  by (simp add: Regular.null_def)
+
+lemma null_epsilon[simp]: "null {\<epsilon>} = {\<epsilon>}"
+by (simp add: Regular.null_def)
 
 lemma deriv_empty:"deriv a {} = {}"
   apply(simp add: deriv_def)
