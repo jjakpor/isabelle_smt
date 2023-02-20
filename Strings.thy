@@ -212,4 +212,14 @@ theorem re_pow_correct1: "lang(re_pow 0 r) = {\<epsilon>}" by auto
 theorem re_pow_correct2: "lang (re_pow (Suc n) r ) = concat (lang r) (lang (re_pow n r))"
   by (simp add: RegEx.re_concat_correct)
 
+abbreviation re_loop:: "nat \<Rightarrow> nat \<Rightarrow> uc regex \<Rightarrow> uc regex" where "re_loop a b r \<equiv> RegEx.re_loop r a b"
+theorem re_loop_correct1: "a \<le> b \<Longrightarrow> lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
+  apply(auto)
+  using re_loop_iff1 apply (metis atLeastAtMost_iff)
+  using re_loop_iff1  using le_trans by blast
+theorem re_loop_correct2: "a > b \<Longrightarrow> lang (re_loop a b r) = {}"
+  using re_loop_iff2 re_none_correct by metis
+
+  
+
 end

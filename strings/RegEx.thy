@@ -110,6 +110,27 @@ primrec re_pow::"'a::linorder regex \<Rightarrow> nat \<Rightarrow> 'a regex" wh
 "re_pow r 0 = (Const \<epsilon>)"|
 "re_pow r (Suc n) = re_concat r (re_pow r n)"
 
+
+fun re_loop::"'a::linorder regex \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a regex" where
+"re_loop r (Suc a) 0 = None"|
+"re_loop r 0 0 = Const \<epsilon>"|
+"re_loop r a (Suc n) = (if a \<le> (Suc n) then re_union (re_pow r (Suc n)) (re_loop r a n) else None)"
+
+
+lemma re_loop_iff1:"a \<le> b \<Longrightarrow> w\<in> lang (re_loop r a b) \<longleftrightarrow> (\<exists>x. a \<le> x \<and> x \<le> b \<and> w \<in> lang (re_pow r x))"
+  apply(induct b)
+  apply(auto simp add: UnE le_SucI not0_implies_Suc not_less_eq_eq re_union_correct)
+   apply (metis empty_iff lang.simps(1) le_Suc_eq re_loop.elims)
+  using antisym not_less_eq_eq by fastforce
+
+lemma re_loop_iff2:"a>b \<Longrightarrow> re_loop r a b = None"
+  apply(cases \<open>(r, a, b)\<close> rule: re_loop.cases)
+  by auto
+
+
+
+  
+
 (* A language is nullable if it accepts the empty word*)
 primrec nullable:: "'a::linorder regex \<Rightarrow> bool" 
   where

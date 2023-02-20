@@ -246,7 +246,7 @@
                 "pairwise": false
             },
             "_ re.loop": {
-                "mapsto": null,
+                "mapsto": "re_loop",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
