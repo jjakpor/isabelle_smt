@@ -216,7 +216,7 @@
                 "pairwise": false
             },
             "re.diff": {
-                "mapsto": null,
+                "mapsto": "re_diff",
                 "assoc": "left",
                 "chainable": false,
                 "pairwise": false

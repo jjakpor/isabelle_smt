@@ -11,6 +11,7 @@ datatype 'a::linorder regex = None | Const "'a word"
   | Inter "'a regex" "'a regex"
   | Any
   | Comp "'a regex"
+  | Diff "'a regex" "'a regex"
   | Range "'a" "'a"
 
 
@@ -24,7 +25,8 @@ primrec lang:: "'a::linorder regex \<Rightarrow> 'a word set"  where
 "lang (Star r) = star (lang r)" |
 "lang (Range l u) = {(v#\<epsilon>)|v. l \<le> v \<and> v \<le> u}"|
 "lang (Inter r1 r2) = (lang r1) \<inter> (lang r2)"|
-"lang (Comp r) = -(lang r)"
+"lang (Comp r) = -(lang r)"|
+"lang (Diff r1 r2) = (lang r1) - (lang r2)"
 
 
 lemma star_any_is_univ: "w \<in> lang (Star Any)"
@@ -80,7 +82,7 @@ fun re_range::  "'a::linorder \<Rightarrow> 'a::linorder \<Rightarrow> 'a regex"
 "re_range l u = (if (l < u) then (Range l u) else (if l = u then (Const (l#\<epsilon>)) else None))"
 
 lemma re_range_correct: "lang (re_range l u) = (lang (Range l u))"
-  by (auto simp add:)
+  by auto
 
 
   
@@ -95,6 +97,15 @@ lemma re_comp_correct: "lang (re_comp r) = (lang (Comp r))"
   apply(auto)
   using star_any_is_univ by force
 
+fun re_diff:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
+"re_diff None _ = None"|
+"re_diff r None = r"|
+"re_diff r1 r2  = Diff r1 r2"
+
+lemma re_diff_correct: "lang (re_diff r1 r2) = lang (Diff r1 r2)" 
+  apply(cases \<open>(r1, r2)\<close> rule: re_diff.cases)
+  by auto
+  
 
 
 (* A language is nullable if it accepts the empty word*)
@@ -108,7 +119,8 @@ primrec nullable:: "'a::linorder regex \<Rightarrow> bool"
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
   "nullable (Star r) = True"|
   "nullable (Range _ _) = False"|
-  "nullable (Comp r) = (\<not> nullable r)"
+  "nullable (Comp r) = (\<not> nullable r)"|
+  "nullable (Diff r1 r2) = ((nullable r1) \<and> (\<not> nullable r2))"
 
 lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
   apply (induct r) 
@@ -127,7 +139,8 @@ primrec vu:: "'a::linorder regex \<Rightarrow> 'a regex" where
 "vu (Star r) = (Const Epsilon)" |
 "vu Any = None"|
 "vu (Range _ _) = None"|
-"vu (Comp r) = (if (nullable r) then None else (Const \<epsilon>))"
+"vu (Comp r) = (if (nullable r) then None else (Const \<epsilon>))"|
+"vu (Diff r1 r2) = (if (nullable r1 \<and> \<not> nullable r2) then (Const \<epsilon>) else None)"
 
 
 
@@ -142,7 +155,8 @@ fun rderiv :: "'a::linorder \<Rightarrow> 'a::linorder regex \<Rightarrow> 'a::l
 "rderiv c (Concat r1 r2) = (re_union (re_concat (rderiv c r1) r2)  (re_concat (vu r1) (rderiv c r2)))" |
 "rderiv c (Star r) = re_concat (rderiv c r) (re_star r)"|
 "rderiv c (Range l u) = (if (l\<le>c \<and> c \<le> u) then (Const \<epsilon>) else None)"|
-"rderiv c (Comp r) = Comp (rderiv c r)"
+"rderiv c (Comp r) = re_comp (rderiv c r)"|
+"rderiv c (Diff r1 r2) = re_diff (rderiv c r1) (rderiv c r2)"
 
 lemma "c>u \<Longrightarrow> rderiv c (Range l u) = None"
   by (auto)
@@ -157,7 +171,8 @@ lemma [simp]: "l\<le>c \<and> c \<le> u \<Longrightarrow> rderiv c (Range l u) =
 lemma vu_null_iff: "lang (vu r) = null (lang r)"
   unfolding Regular.null_def 
   apply(induct r)
-  by (simp_all add: re_union_correct re_concat_correct re_inter_correct re_star_correct concat_def  nullability)
+  by (simp_all add: re_union_correct re_concat_correct re_inter_correct re_star_correct concat_def re_diff_correct  nullability)
+  
 
 
 lemma rderiv_correct: "lang (rderiv a r) = deriv a (lang r)"
@@ -193,7 +208,10 @@ next
   then show ?case by(auto simp add: deriv_def)
 next 
   case (Comp r)
-  then show ?case by (auto simp add: deriv_def)
+  then show ?case by (auto simp add: deriv_def re_comp_correct)
+next 
+  case (Diff r1 r2)
+  then show ?case by (auto simp add: deriv_def re_diff_correct)
 qed
 
 

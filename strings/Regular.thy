@@ -149,6 +149,8 @@ lemma star_rm_epsilon: "star (R-{\<epsilon>}) = star R"
   apply(auto simp add: star_remove_epsilons)
   done
 
+
+
 lemma [simp]:"w \<in> pow R n \<Longrightarrow> w \<in> (star R)"
   apply(auto simp add: star_def)
   done

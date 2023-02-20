@@ -202,6 +202,9 @@ abbreviation re_opt::"uc regex \<Rightarrow> uc regex" where "re_opt r \<equiv> 
 abbreviation re_comp::"uc regex \<Rightarrow> uc regex" where "re_comp \<equiv> RegEx.re_comp"
 theorem re_comp_correct: "lang (re_comp r) = UC - (lang r)"
   by (auto simp add: re_comp_correct UC_def)
-  
+
+abbreviation re_diff:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex" where "re_diff \<equiv> RegEx.re_diff"
+theorem re_diff_correct: "lang (re_diff r1 r2) = (lang r1) - (lang r2)" 
+  by (simp add: re_diff_correct)
 
 end
