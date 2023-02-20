@@ -186,7 +186,7 @@
                 "pairwise": false
             },
             "str.replace": {
-                "mapsto": null,
+                "mapsto": "str_replace",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
@@ -240,7 +240,7 @@
                 "pairwise": false
             },
             "_ re.^": {
-                "mapsto": "re_pow,
+                "mapsto": "re_pow",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
