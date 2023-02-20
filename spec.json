@@ -228,7 +228,7 @@
                 "pairwise": false
             },
             "re.opt": {
-                "mapsto": null,
+                "mapsto": "re_opt",
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
@@ -240,7 +240,7 @@
                 "pairwise": false
             },
             "_ re.^": {
-                "mapsto": null,
+                "mapsto": "re_pow,
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false

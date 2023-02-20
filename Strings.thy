@@ -207,4 +207,9 @@ abbreviation re_diff:: "uc regex \<Rightarrow> uc regex \<Rightarrow> uc regex" 
 theorem re_diff_correct: "lang (re_diff r1 r2) = (lang r1) - (lang r2)" 
   by (simp add: re_diff_correct)
 
+abbreviation re_pow::"nat \<Rightarrow> uc regex \<Rightarrow> uc regex" where "re_pow n r \<equiv> RegEx.re_pow r n"
+theorem re_pow_correct1: "lang(re_pow 0 r) = {\<epsilon>}" by auto
+theorem re_pow_correct2: "lang (re_pow (Suc n) r ) = concat (lang r) (lang (re_pow n r))"
+  by (simp add: RegEx.re_concat_correct)
+
 end

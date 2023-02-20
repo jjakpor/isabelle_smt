@@ -106,7 +106,9 @@ lemma re_diff_correct: "lang (re_diff r1 r2) = lang (Diff r1 r2)"
   apply(cases \<open>(r1, r2)\<close> rule: re_diff.cases)
   by auto
   
-
+primrec re_pow::"'a::linorder regex \<Rightarrow> nat \<Rightarrow> 'a regex" where
+"re_pow r 0 = (Const \<epsilon>)"|
+"re_pow r (Suc n) = re_concat r (re_pow r n)"
 
 (* A language is nullable if it accepts the empty word*)
 primrec nullable:: "'a::linorder regex \<Rightarrow> bool" 
