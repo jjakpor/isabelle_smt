@@ -5,7 +5,6 @@ begin
 
 
 type_synonym uc_string = "196607 word"
-(*type_synonym uc_string = "nat word"*)
 
 definition UC:: "uc_string set" where "UC = {w. True}"
 lemma "UNIV = UC"  by (simp add: UC_def)
@@ -100,14 +99,17 @@ lemma x:"str_indexof h n s = i \<and> i\<ge>0 \<Longrightarrow> i-s \<ge> 0"
 lemma indexof_if_suffix_contains: assumes "i\<ge>0 \<and> str_contains (drop (nat i) w) v" shows  "(str_indexof w v i) \<ge> i"
   using assms contains_iff_find_index by force
 
-
 theorem indexof_correct_1:
-  fixes i::"int"
-  shows "i\<ge>0 \<and> i \<le> int (length w) \<and> str_contains (drop (nat i) w) v \<Longrightarrow> EX n x y. ((str_indexof w v i) = n \<and>  w = x@v@y \<and> (int (length x)) = n)"
-  apply(auto simp add: option.case_eq_if)
-   apply (simp add: contains_iff_find_index)
-  using find_index_of_suffix  by fastforce
-
+  fixes i::"nat"
+  assumes "i\<ge>0" and "i \<le> length w" and "str_contains (drop  i w) v"
+  shows "EX n. (str_indexof w v (int i)) = (int n) \<and> (EX x y. w = x@v@y \<and> n = (length x) \<and> i\<le>n \<and> (\<forall>n'. n' < n \<longrightarrow> (\<nexists>x' y'. (length x') = n' \<and> i\<le>n' \<and> w = x'@v@y')))"
+proof -
+  from assms have "\<exists>n. (str_indexof w v (int i)) = (int n)"  by (simp add: contains_iff_find_index option.case_eq_if zero_le_imp_eq_int)
+  then have f1:"\<exists>n. find_index  (drop i w) v = Some n" using assms(3) contains_iff_find_index by blast
+  then have f2:"\<exists>n. find_index  (drop i w) v = Some n \<and> (\<exists>x y. w = x@v@y \<and> (length x) = (n+i) \<and> (\<forall>x'. ((length x') < (n+i) \<and> (length x') \<ge> i) \<longrightarrow> (\<nexists>y'. w = x'@v@y')))"  using assms(2) find_index_of_suffix_returns_first by blast
+  then show ?thesis  by (metis int_eq_iff int_ops(5) le_add2 option.simps(5))
+qed
+  
 theorem indexof_correct2: 
    "(i < 0 \<or> \<not>(str_contains (drop (nat i) w) v)) \<Longrightarrow> (str_indexof w v i) = -1"
   using contains_iff_find_index by fastforce
@@ -142,11 +144,11 @@ theorem re_allchar_correct: "lang re_allchar = {w. (length w) = 1}" by simp
   
 (* missing:  re_all*)
 
-abbreviation re_concat:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex"  where "re_concat r1 r2 \<equiv> RegEx.re_concat r1 r2"
+abbreviation re_concat:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex"  where "re_concat \<equiv> RegEx.re_concat"
 theorem re_concat_correct: "(lang (re_concat r e)) = {x@y|x y. x \<in> (lang r) \<and> y \<in> (lang e)}" 
   by (simp add: Regular.concat_def re_concat_correct)
 
-abbreviation re_union:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where "re_union r1 r2 \<equiv> RegEx.re_union r1 r2"
+abbreviation re_union:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where "re_union  \<equiv> RegEx.re_union"
 theorem re_union_correct: "lang (re_union r e) = {w|w. w \<in> (lang r) \<or> w \<in> (lang e)}"
   by (simp add: Un_def re_union_correct)
 
@@ -155,7 +157,7 @@ theorem re_inter_correct: "lang (re_inter r1 r2) = {w|w. w\<in> (lang r1) \<and>
   by (auto simp add: re_inter_correct)
   
 
-abbreviation re_star:: "uc_regex \<Rightarrow>uc_regex" where "re_star r \<equiv> RegEx.re_star r"
+abbreviation re_star:: "uc_regex \<Rightarrow>uc_regex" where "re_star \<equiv> RegEx.re_star "
 theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (concat (lang r) k) \<subseteq> k"
   by (auto simp add: re_star_correct concat_star_subset)
   

@@ -51,6 +51,9 @@ fun re_concat:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a rege
 "re_concat None r = None"|
 "re_concat r None = None"|
 "re_concat r e = Concat r e"
+  
+
+
 
 lemma re_concat_correct:"(lang (re_concat r e)) = (lang (Concat r e))"
   apply(cases \<open>(r, e)\<close> rule: re_concat.cases)
@@ -136,7 +139,7 @@ primrec nullable:: "'a::linorder regex \<Rightarrow> bool"
   where
   "nullable None = False" |
   "nullable Any = False" |
-  "nullable (Const w) = (w = Epsilon)" |
+  "nullable (Const w) = (w = \<epsilon>)" |
   "nullable (Union r1 r2) = ((nullable r1) \<or> (nullable r2))" |
   "nullable (Inter r1 r2) = ((nullable r1) \<and> (nullable r2))"|
   "nullable (Concat r1 r2) = ((nullable r1) \<and> (nullable r2))" |
@@ -145,21 +148,21 @@ primrec nullable:: "'a::linorder regex \<Rightarrow> bool"
   "nullable (Comp r) = (\<not> nullable r)"|
   "nullable (Diff r1 r2) = ((nullable r1) \<and> (\<not> nullable r2))"
 
-lemma nullability: "nullable r \<longleftrightarrow> Epsilon \<in> (lang r)"
+lemma nullability: "nullable r \<longleftrightarrow> \<epsilon> \<in> (lang r)"
   apply (induct r) 
   apply(auto simp add: concat_def)
   done
   
 
-(* abbreviation vu:: "'a regex \<Rightarrow> 'a regex" where "vu r \<equiv> (if (nullable r) then (Const Epsilon) else None)" *)
+(* abbreviation vu:: "'a regex \<Rightarrow> 'a regex" where "vu r \<equiv> (if (nullable r) then (Const \<epsilon>) else None)" *)
 
 primrec vu:: "'a::linorder regex \<Rightarrow> 'a regex" where
-"vu (Const w) = (if w = Epsilon then (Const w) else None)" |
+"vu (Const w) = (if w = \<epsilon> then (Const w) else None)" |
 "vu None = None" |
 "vu (Union r1 r2) = re_union (vu r1) (vu r2)" |
 "vu (Inter r1 r2) = re_inter (vu r1) (vu r2)" |
 "vu (Concat r1 r2) = re_concat (vu r1) (vu r2)" |
-"vu (Star r) = (Const Epsilon)" |
+"vu (Star r) = (Const \<epsilon>)" |
 "vu Any = None"|
 "vu (Range _ _) = None"|
 "vu (Comp r) = (if (nullable r) then None else (Const \<epsilon>))"|
@@ -170,7 +173,7 @@ primrec vu:: "'a::linorder regex \<Rightarrow> 'a regex" where
 (* Derivatives of regular languages *)
 fun rderiv :: "'a::linorder \<Rightarrow> 'a::linorder regex \<Rightarrow> 'a::linorder regex" where
 "rderiv c None = None" |
-"rderiv c Any = (Const Epsilon)"|
+"rderiv c Any = (Const \<epsilon>)"|
 "rderiv c (Const (a#w)) = (if a = c then (Const w) else None)" |
 "rderiv c (Const \<epsilon>) = None"|
 "rderiv c (Union r1 r2) = re_union (rderiv c r1) (rderiv c r2)" |
@@ -241,7 +244,7 @@ qed
 
 primrec rderivw:: "'a::linorder word \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
   where
-  "rderivw Epsilon r = r" |
+  "rderivw \<epsilon> r = r" |
   "rderivw (a#u) r = rderivw u (rderiv a r)"
 
 
