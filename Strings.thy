@@ -29,13 +29,12 @@ abbreviation str_len:: "uc_string \<Rightarrow> int" where  "str_len w \<equiv> 
 
 
 abbreviation str_at:: "uc_string \<Rightarrow> int \<Rightarrow> uc_string" where "str_at w i \<equiv> if i \<ge> 0 then (at w (nat i)) else \<epsilon>"
-abbreviation str_substr:: "uc_string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> uc_string"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then  fac w (nat m) (nat n) else \<epsilon>"
+abbreviation str_substr:: "uc_string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> uc_string"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then fac w (nat m) (nat n) else \<epsilon>"
 
 (* Correctness of at: \<lbrakk>str.at\<rbrakk>(w, n) = \<lbrakk>str.substr\<rbrakk>(w, n, 1) *)
 theorem at_correct: "str_at w n = str_substr w n 1"
-  unfolding fac_def at_def
   apply(auto)
-  by (metis (no_types, lifting) append.simps(2) append_take_drop_id first.simps(1) first.simps(2) take_Suc take_eq_Nil2)
+  using at_is_fac_1  by (metis One_nat_def diff_le_self le_trans)
 
 
 (* Correctness of substr: 

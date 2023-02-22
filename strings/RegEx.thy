@@ -41,6 +41,7 @@ fun re_union::"'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
 "re_union (Const a) (Const b) = (if a = b then (Const a) else (Union (Const a) (Const b)))"|
 "re_union r e = Union r e"
 
+
 lemma re_union_correct:"(lang (re_union r e)) = (lang (Union r e))"
   apply(cases \<open>(r, e)\<close> rule: re_union.cases)
   by (auto)

@@ -85,23 +85,24 @@ lemma concat_trans: "w \<in> r \<longleftrightarrow> a#w \<in> concat {a#\<epsil
 
 
 
-lemma concat_star_subset: "w \<in> concat R (star R) \<Longrightarrow> w \<in> (star R)"
-proof -
-  assume "w \<in> concat R (star R)"
-  then have "w \<in> {w |w n. w \<in> pow R (Suc n)}"  by (auto simp add: concat_def star_all_pows)
-  then have "w \<in> {w |w m. w \<in> pow R m}" by blast
-  then show "w \<in> (star R)" by (simp only: star_all_pows)
+lemma concat_star_subset: "concat L (star L) \<subseteq> (star L)"
+proof 
+  fix w  assume "w \<in> concat L (star L)"
+  then have "w \<in> {w |w n. w \<in> pow L (Suc n)}"  by (auto simp add: concat_def star_all_pows)
+  then have "w \<in> {w |w m. w \<in> pow L m}" by blast
+  then show "w \<in> (star L)" by (simp only: star_all_pows)
 qed
 
 
 lemma concat_star:"set ws \<subseteq> R \<Longrightarrow> concat_all ws \<in> (star R)"
   apply(induct ws)
-   apply (auto simp add: concat_containment1 concat_star_subset)
-  done
+  apply(auto)
+  using concat_containment1 concat_star_subset by blast
+  
 
 lemma star_subsumes: "v@w \<in> concat {v} (star r) \<and> v \<in> r \<Longrightarrow> v@w \<in> (star r)"
   apply(auto)
-  by (metis concat_containment1 concat_containment2 concat_star_subset singletonD)
+  using concat_star_subset  using concat_containment1 concat_containment2 by blast
   
 lemma star_of_singletons_is_univ: "x \<in> star {v|v a. v = a#\<epsilon>}" 
 proof (induct x)

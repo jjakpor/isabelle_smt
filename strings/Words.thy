@@ -17,6 +17,10 @@ primrec first:: "'a word \<Rightarrow> 'a word" where
 "first \<epsilon> = \<epsilon>"|
 "first (a#w) = a#\<epsilon>"
 
+lemma first_is_take_1: "first w = take 1 w"
+  apply(induct_tac w)
+  by(auto)
+
 lemma singleton_word: "(length w) = 1 \<Longrightarrow> EX a. w = a#\<epsilon>"
   by (simp add: length_Suc_conv)
 
@@ -38,7 +42,14 @@ definition fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a 
 definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((take (size v) w) = v)"
 definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)"
 
-
+lemma at_is_fac_1: "at w i = fac w i 1"
+  by (simp add: at_def fac_def first_is_take_1)
+(*proof -
+  have "at w i = first (drop i w)" by (simp add: at_def)
+  also have "... = take 1 (drop i w)" by (simp add: first_is_take_1)
+  also have "... = fac w i 1" by (simp add: fac_def)
+  finally show ?thesis .
+qed*)
 
 lemma length_additive: "w = u@v \<Longrightarrow> (length w) = (length u) + (length v)" by auto
 
