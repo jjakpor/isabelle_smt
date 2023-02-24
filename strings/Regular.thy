@@ -6,13 +6,13 @@ begin
 type_synonym 'a RegLang = "'a word set"
 
 (* Regular Operations *)
-definition concat :: "'a RegLang \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" where "concat R S = {u@v |u v. u:R & v:S}"
+definition concat :: "'a RegLang \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" where "concat R S = {u\<cdot>v |u v. u\<in>R & v\<in>S}"
 
-lemma concat_containment1: "a \<in> A \<and> b \<in> B \<Longrightarrow> (a @ b) \<in> (concat A B)"
+lemma concat_containment: "a \<in> A \<and> b \<in> B \<Longrightarrow> (a \<cdot> b) \<in> (concat A B)"
   apply(auto simp add: concat_def)
   done
 
-lemma concat_containment2: "w \<in> (concat A B) \<Longrightarrow> \<exists>a b. w = a@b \<and> a \<in> A \<and> b \<in> B "
+lemma in_concat_if: "w \<in> (concat A B) \<Longrightarrow> \<exists>a b. w = a\<cdot>b \<and> a \<in> A \<and> b \<in> B "
   apply(auto simp add: concat_def)
   done
 
@@ -33,7 +33,7 @@ primrec pow:: "'a RegLang \<Rightarrow> nat \<Rightarrow> 'a RegLang"
 lemma pow_epsilon:"pow {\<epsilon>} n = {\<epsilon>}"
   apply(induct n)
    apply(simp)
-  by (simp add: concat_containment2 epsilon_concat_iff concat_def)
+  by (simp add: in_concat_if epsilon_concat_iff concat_def)
 
 
 lemma pow_zero_empty: "pow {} 0 = {\<epsilon>}"
@@ -97,12 +97,12 @@ qed
 lemma concat_star:"set ws \<subseteq> R \<Longrightarrow> concat_all ws \<in> (star R)"
   apply(induct ws)
   apply(auto)
-  using concat_containment1 concat_star_subset by blast
+  using concat_containment concat_star_subset by blast
   
 
-lemma star_subsumes: "v@w \<in> concat {v} (star r) \<and> v \<in> r \<Longrightarrow> v@w \<in> (star r)"
+lemma star_subsumes: "v\<cdot>w \<in> concat {v} (star r) \<and> v \<in> r \<Longrightarrow> v\<cdot>w \<in> (star r)"
   apply(auto)
-  using concat_star_subset  using concat_containment1 concat_containment2 by blast
+  using concat_star_subset  using concat_containment in_concat_if by blast
   
 lemma star_of_singletons_is_univ: "x \<in> star {v|v a. v = a#\<epsilon>}" 
 proof (induct x)
@@ -114,7 +114,7 @@ next
   then have "x \<in> star {v |v b. v = b#\<epsilon>}" by auto
   then have fac1:"a#x \<in> concat {a#\<epsilon>} (star {v |v b. v = b#\<epsilon>})" using concat_trans by fastforce
   have fac2: "(a#\<epsilon>) \<in> {v |v b. v = b#\<epsilon>}" by simp
-  from fac1 fac2 have "a#x \<in>  (star {v |v b. v = b#\<epsilon>})" using  star_subsumes  by (metis concat_containment2 singletonD)
+  from fac1 fac2 have "a#x \<in>  (star {v |v b. v = b#\<epsilon>})" using  star_subsumes  by (metis in_concat_if singletonD)
   then show ?case by auto
 qed
 
@@ -131,9 +131,9 @@ proof (induct n arbitrary: r  w)
 next
   case IH:(Suc n)
   then have "w \<in> concat r (pow r n)" by force
-  then have "\<exists>x y. w = x@y \<and> x \<in> r \<and> y \<in> (pow r n)" by (force simp add: concat_def)
-  then have "\<exists>x y. w = x@y \<and> (\<exists>ws. y = concat_all ws \<and> set ws \<subseteq> r)" using IH by fastforce
-  then have "\<exists>ws. w = concat_all ws \<and> set ws \<subseteq> r" by (metis IH.hyps \<open>\<exists>x y. w = x @ y \<and> x \<in> r \<and> y \<in> pow r n\<close> concat_all.simps(2) insert_subset list.set(2))
+  then have "\<exists>x y. w = x\<cdot>y \<and> x \<in> r \<and> y \<in> (pow r n)" by (force simp add: concat_def)
+  then have "\<exists>x y. w = x\<cdot>y \<and> (\<exists>ws. y = concat_all ws \<and> set ws \<subseteq> r)" using IH by fastforce
+  then have "\<exists>ws. w = concat_all ws \<and> set ws \<subseteq> r" by (metis IH.hyps \<open>\<exists>x y. w = x \<cdot> y \<and> x \<in> r \<and> y \<in> pow r n\<close> concat_all.simps(2) insert_subset list.set(2))
   then show ?case by simp
 qed
 
@@ -149,7 +149,6 @@ lemma star_rm_epsilon: "star (R-{\<epsilon>}) = star R"
   unfolding star_is_concats
   apply(auto simp add: star_remove_epsilons)
   done
-
 
 
 lemma [simp]:"w \<in> pow R n \<Longrightarrow> w \<in> (star R)"
@@ -191,11 +190,8 @@ lemma deriv_concat:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (conc
   unfolding deriv_def concat_def null_def
   apply(simp)
   apply(auto)
-  apply (metis append_eq_Cons_conv)
-  apply (metis append_Cons)
-  apply (metis append_eq_Cons_conv)
-  apply (metis append_Cons)
-  done
+  by (metis append_eq_Cons_conv)+
+  
 
 lemma pow_not_epsilon_is_succ:"n>0 \<and> w \<in> pow R n \<Longrightarrow> \<exists>m. w \<in> pow R (Suc m)"
   apply(induct n)
@@ -205,9 +201,9 @@ lemma pow_not_epsilon_is_succ:"n>0 \<and> w \<in> pow R n \<Longrightarrow> \<ex
 lemma star_unroll:"star r = (concat r (star r)) \<union> {\<epsilon>}"
   unfolding concat_def star_all_pows
   apply(auto simp add: pow_not_zero concat_def)
-  apply (metis Regular.pow.simps(1) Regular.pow.simps(2) bot_nat_0.not_eq_extremum concat_containment2 pow_not_epsilon_is_succ singletonD)
+  apply (metis Regular.pow.simps(1) Regular.pow.simps(2) bot_nat_0.not_eq_extremum in_concat_if pow_not_epsilon_is_succ singletonD)
    apply (simp add: epsilon_in_pow)
-  using Regular.pow.simps(2) concat_containment1 by blast
+  using Regular.pow.simps(2) concat_containment by blast
   
 
 

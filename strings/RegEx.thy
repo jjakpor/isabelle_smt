@@ -3,17 +3,27 @@ theory RegEx
 begin
 
 
-(* Regular Expressions *)
-datatype 'a::linorder regex = None | Const "'a word" 
-  | Union "'a regex" "'a regex"
-  | Concat "'a regex" "'a regex"  
-  | Star "'a regex"
-  | Inter "'a regex" "'a regex"
-  | Any
-  | Comp "'a regex"
-  | Diff "'a regex" "'a regex"
-  | Range "'a" "'a"
 
+
+(* Regular Expressions *)
+datatype 'a::linorder regex = None  | Const "'a word" 
+  | Union "'a regex" "'a regex" (infixr "\<squnion>" 65)
+  | Concat "'a regex" "'a regex"  (infixr "\<cdot>" 65)
+  | Star "'a regex"  ("_\<^sup>\<star>")
+  | Inter "'a regex" "'a regex" (infixr "\<sqinter>" 65)
+  | Any ("?")
+  | Comp "'a regex" ("\<inverse>")
+  | Diff "'a regex" "'a regex" ("\\")
+  | Range "'a" "'a" ("[__]")
+
+
+
+instantiation char::linorder begin
+definition less_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_char a b \<equiv> ((of_char a)::nat) < ((of_char b)::nat)" 
+definition less_eq_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_eq_char a b \<equiv> ((of_char a)::nat) \<le> ((of_char b)::nat)"
+instance apply(standard)
+  using less_char_def less_eq_char_def by auto
+end
 
 
 primrec lang:: "'a::linorder regex \<Rightarrow> 'a word set"  where
@@ -42,6 +52,7 @@ fun re_union::"'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex"
 "re_union r e = Union r e"
 
 
+
 lemma re_union_correct:"(lang (re_union r e)) = (lang (Union r e))"
   apply(cases \<open>(r, e)\<close> rule: re_union.cases)
   by (auto)
@@ -53,8 +64,6 @@ fun re_concat:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a rege
 "re_concat r None = None"|
 "re_concat r e = Concat r e"
   
-
-
 
 lemma re_concat_correct:"(lang (re_concat r e)) = (lang (Concat r e))"
   apply(cases \<open>(r, e)\<close> rule: re_concat.cases)

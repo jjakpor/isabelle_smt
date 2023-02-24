@@ -22,19 +22,22 @@ The conversion between integers and naturals as well as handling of edge cases
 Pure string predicates are defined in "strings/Words", regular expression in "strings/RegEx".
 *)
 
-abbreviation str_concat:: "uc_string \<Rightarrow> uc_string  \<Rightarrow> uc_string"  where "(str_concat) u v \<equiv> u@v" 
+abbreviation str_concat:: "uc_string \<Rightarrow> uc_string  \<Rightarrow> uc_string"  where "(str_concat) u v \<equiv> u\<cdot>v" 
 
 
 abbreviation str_len:: "uc_string \<Rightarrow> int" where  "str_len w \<equiv> of_nat (length w)"
 
 
 abbreviation str_at:: "uc_string \<Rightarrow> int \<Rightarrow> uc_string" where "str_at w i \<equiv> if i \<ge> 0 then (at w (nat i)) else \<epsilon>"
-abbreviation str_substr:: "uc_string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> uc_string"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then fac w (nat m) (nat n) else \<epsilon>"
+abbreviation str_substr:: "uc_string \<Rightarrow> int \<Rightarrow> int \<Rightarrow> uc_string"  where "str_substr w m n \<equiv> if (n \<ge> 0 \<and> 0\<le>m \<and> ((nat m) \<le> (length w)-1)) then  w[(nat m);(nat (m+n))] else \<epsilon>"
+
 
 (* Correctness of at: \<lbrakk>str.at\<rbrakk>(w, n) = \<lbrakk>str.substr\<rbrakk>(w, n, 1) *)
 theorem at_correct: "str_at w n = str_substr w n 1"
-  apply(auto)
-  using at_is_fac_1  by (metis One_nat_def diff_le_self le_trans)
+  apply(cases n)
+   apply(simp add: Suc_nat_eq_nat_zadd1)
+  apply (metis Suc_as_int add.commute at_is_fac_1 get_factor.simps plus_1_eq_Suc)
+  by auto
 
 
 (* Correctness of substr: 
@@ -48,32 +51,38 @@ theorem at_correct: "str_at w n = str_substr w n 1"
 *)
 theorem substr_correct1: 
   fixes m::"int" and n::"int"
-  shows "0\<le>m \<and> m < (int (length w)) \<and> 0 < n \<Longrightarrow> (str_substr w m n = v \<Longrightarrow> (EX x y. (w = x@v@y \<and> ((int (length x)) = m) \<and> (int (length v)) = (min n ((int (length w)) - m)))))"
-  unfolding fac_def
-  apply(auto)
-  apply(simp_all add: int_eq_iff min_def)+
-  apply(auto simp add:  int_ops(6)  le_nat_iff  less_le_not_le  nat_diff_distrib )+
-   apply (metis append.right_neutral append_take_drop_id le_nat_iff length_take min_def)
-  by (metis (no_types, lifting) Words.drop_append append_take_drop_id diff_less_Suc less_Suc_eq_le order_le_less_trans)
+  shows "0\<le>m \<and> m < (int (length w)) \<and> 0<n \<Longrightarrow> (str_substr w m n = v \<Longrightarrow> (EX x y. (w = x@v@y \<and> ((length x) = (nat m)) \<and>  (length v) = (min (nat n) ((length w) - (nat m))))))"
+proof -
+  assume a1: "0 \<le> m \<and> m < int (length w) \<and> 0 < n"
+  assume a2: "(if 0 \<le> n \<and> 0 \<le> m \<and> nat m \<le> length w - 1 then w[nat m;nat (m + n)] else \<epsilon>) = v"
+  from a1 a2 have "v =  w[nat m;nat (m + n)]" by (simp add: int_ops(6) nat_le_iff)
+  then have a3:"v =  w[nat m;(nat m) + (nat n)]" using a1 nat_add_distrib by force
+
+  from a1 a3 have "(nat m) < (length w) \<and> 0 < n \<and> v =  w[nat m;(nat m) + (nat n)]" by auto
+  then have "\<exists> x y. w = x\<cdot>v\<cdot>y \<and> (length x) = (nat m) \<and> (length v) = min (nat n) ((length w) - (nat m))" using  strict_factor_embedding zero_less_nat_eq by (metis add_diff_cancel_left' less_add_same_cancel1)
+  thus ?thesis by auto
+qed
+  
+  
   
 
 theorem substr_correct2:
 fixes m::"int" and n::"int"
 shows "\<not>(0\<le>m \<and> m < (int (length w)) \<and> 0 < n) \<Longrightarrow> (str_substr w m n = \<epsilon>)"
-  unfolding fac_def by auto
+  by auto
   
 
-abbreviation str_prefixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_prefixof \<equiv> Words.is_prefix"
-abbreviation str_suffixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_suffixof \<equiv> Words.is_suffix"
+abbreviation str_prefixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_prefixof \<equiv> prefix"
+abbreviation str_suffixof:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_suffixof \<equiv> suffix"
 
 (* Correctness of prefixof: \<lbrakk>str.prefixof\<rbrakk>(v, w) = true iff w = vx₂ for some word x *)
 theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x)"
-  by (simp add: prefix_iff_startswith)
+  by (simp add: prefix_def)
 
 
 (* Correctness of suffixof: \<lbrakk>str.suffixof\<rbrakk>(v, w) = true iff w = xv₂ for some word x *)
 theorem suffix_correct: "str_suffixof v w \<longleftrightarrow> (EX x. w = x@v)"
-  by (simp add: suffix_iff_endswith) 
+  by (simp add: suffix_def) 
 
 abbreviation str_contains:: "uc_string \<Rightarrow> uc_string \<Rightarrow> bool" where "str_contains \<equiv> Words.contains"
 
@@ -158,7 +167,7 @@ theorem re_inter_correct: "lang (re_inter r1 r2) = {w|w. w\<in> (lang r1) \<and>
 
 abbreviation re_star:: "uc_regex \<Rightarrow>uc_regex" where "re_star \<equiv> RegEx.re_star "
 theorem re_star_correct: "((lang (re_star r)) = k) \<Longrightarrow> \<epsilon> \<in> k \<and> (concat (lang r) k) \<subseteq> k"
-  by (auto simp add: re_star_correct concat_star_subset)
+  using concat_star_subset re_star_correct by fastforce
   
 abbreviation re_plus:: "uc_regex \<Rightarrow> uc_regex" where "re_plus r \<equiv> RegEx.re_plus r"
 theorem re_plus_correct: "lang (re_plus r) = lang (re_concat r (re_star r))" by (simp add: re_plus_def)
