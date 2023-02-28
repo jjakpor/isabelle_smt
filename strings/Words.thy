@@ -8,103 +8,83 @@ no_notation append (infixr "@" 65)
 notation append (infixr "\<cdot>" 65)
 notation Nil ("\<epsilon>")
 
-(* Basic Operations *)
-primrec first:: "'a word \<Rightarrow> 'a word" where
-"first \<epsilon> = \<epsilon>"|
-"first (a#w) = a#\<epsilon>"
+notation length ("\<bar>_\<bar>")
+no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
 
-lemma first_is_take_1: "first w = take 1 w"
-  apply(induct_tac w)
-  by(auto)
-
-lemma singleton_word: "(length w) = 1 \<Longrightarrow> EX a. w = a#\<epsilon>"
-  by (simp add: length_Suc_conv)
-
-definition at:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word" where "at w i \<equiv> first (drop i w)"
-
-
-lemma at_overflow[simp]: "i \<ge> length w \<Longrightarrow> at w i = \<epsilon>" 
-  by (simp add: at_def)
 
 primrec concat_all:: "'a word list \<Rightarrow> 'a word"
   where
   "concat_all [] = \<epsilon>" |
   "concat_all (w#ws) = w\<cdot>(concat_all ws)"
 
-
-(* Subword relations *)
-
-(*definition fac :: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" where "fac w s l = take l (drop s w)"*)
-
-(*definition is_prefix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_prefix v w = ((take (size v) w) = v)"*)
-(*definition is_suffix:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "is_suffix v w = is_prefix (rev v) (rev w)"*)
-
 abbreviation factor:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where "factor \<equiv> sublist"
-fun get_factor:: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" ("_[_;_]") where "get_factor w i j = take (j-i) (drop i w)" 
 
-
-
-lemma [simp]:"i \<ge> j \<Longrightarrow> w[i;j] = \<epsilon>" by auto
-lemma [simp]:"i\<ge> (length w) \<Longrightarrow> w[i;j] = \<epsilon>" by auto
-lemma [simp]: "\<epsilon>[i;j] = \<epsilon>" by auto
-lemma [simp]: "w[i;i] = \<epsilon>" by auto
-lemma [simp]: "j \<ge> (length w) \<Longrightarrow> w[0;j] = w" by auto
-
-
-
-lemma at_is_fac_1: "at w i = get_factor w i (i+1)"
-  by (simp add: at_def first_is_take_1)
-
-lemma length_additive: "w = u\<cdot>v \<Longrightarrow> (length w) = (length u) + (length v)" by auto
-
-
-lemma prefix_not_shorter:"(length w) < (length v) \<Longrightarrow> \<not>(prefix v w)"
-  by (auto simp add: prefix_def)
- 
-
-lemma suffix_not_shorter:"(length w) < (length v) \<Longrightarrow> \<not>(suffix v w)"
-  by (auto simp add: suffix_def)
-  
-
-
-lemma factor_embedding:"w[i;j] = v \<Longrightarrow> EX x y. x\<cdot>v\<cdot>y = w"
-  apply(auto simp add: get_factor.elims)
-  by (metis append_take_drop_id)
-
-
-lemma strict_factor_embedding:"i<j \<and> i < (length w) \<Longrightarrow> ((w[i;j] = v) \<Longrightarrow> EX x y. x\<cdot>v\<cdot>y = w \<and> (length x) = i \<and> (length v) = min (j-i) ((length w)-i))"
-  apply(auto) 
-  by (metis append_take_drop_id length_take min.absorb4 min.commute)
-  
-  
-
-
-lemma factorization: "w = x\<cdot>u\<cdot>y \<Longrightarrow> u = (w[(length x);(length u)+(length x)])"
-proof -
-  assume a:"w = x\<cdot>u\<cdot>y"
-  then have "w[(length x);(length u)+(length x)] = take (((length u)+(length x)-(length x))) (drop (length x) w)" by simp
-  also have "... = take (length u) (drop (length x) w)" by simp
-  finally show ?thesis using a by auto
-qed
-
-lemma factor_if:"w = x\<cdot>u\<cdot>y \<Longrightarrow> EX i j. (w[i;j]) = u"
-  by (metis factorization)
-  
-
-lemma factor_size_bound:"w = x\<cdot>v\<cdot>y \<Longrightarrow> (length v) \<le> (length w)"
-  by auto
-
-
-lemma drop_append:"n \<le> (length w) \<and> x = drop n w  \<Longrightarrow> EX v. ((w = v\<cdot>x) \<and> (length v) = n)"
-  apply(induct w)
-   apply auto
-  by (metis append_take_drop_id le_Suc_eq length_Cons length_take min_def not_less_eq_eq)
-    
-
+fun get_factor:: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" ("_[_;_]" 101) where 
+"get_factor w i j = (if i \<le> j then take (j-i) (drop i w) else \<epsilon>)"
 
 primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
 "contains \<epsilon> v = (v = \<epsilon>)" |
 "contains (x#u) v = ((prefix v (x#u)) \<or> (contains u v))" 
+
+definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word option" where
+"find_fac w v = List.find (prefix v) (rev (suffixes w))"
+
+
+definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
+"find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
+
+definition range :: "nat \<Rightarrow> nat \<Rightarrow> nat list" where
+"range i j = map (\<lambda> a. (nat a)) [(int i)..(int j)]"
+
+
+definition replace::"'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
+"replace w v u = (case find_index w v of Some i \<Rightarrow> (take i w)\<cdot>u\<cdot>(drop (i+(length v)) w) | None => w)"
+
+lemma drop_append:"n \<le> \<bar>w\<bar> \<and> x = drop n w  \<Longrightarrow> EX v. ((w = v\<cdot>x) \<and> (length v) = n)"
+  apply(induct w)
+   apply auto
+  by (metis append_take_drop_id le_Suc_eq length_Cons length_take min_def not_less_eq_eq)
+
+
+
+subsection "Factorization"
+
+
+lemma factor_iff:"factor v w \<longleftrightarrow> (\<exists>i. v = (w[i; i+(length v)]))"
+  apply(auto)
+  using append_eq_conv_conj sublist_def apply metis
+  using append_take_drop_id  sublist_def by metis
+
+
+lemma factorization:"i < \<bar>w\<bar> \<and> i\<le>j \<Longrightarrow> \<exists>!v. (w[i; j]) = v \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i \<and> \<bar>v\<bar> = min (j-i) (\<bar>w\<bar>-i))"
+   apply(simp split: if_splits)
+    by (metis append_take_drop_id length_drop length_take min.absorb4 min.commute)
+
+lemma factorize_if:"w = x\<cdot>v\<cdot>y \<Longrightarrow> w[\<bar>x\<bar>; \<bar>x\<bar>+\<bar>v\<bar>] = v" by auto
+
+lemma prefix_iff_fac: "prefix v w \<longleftrightarrow> (w[0; \<bar>v\<bar>] = v)" 
+  unfolding prefix_def
+  apply auto
+  using append_take_drop_id by metis
+
+lemma suffix_iff_fac: "suffix v w \<longleftrightarrow> (w[\<bar>w\<bar> - \<bar>v\<bar>; \<bar>w\<bar>] = v)" 
+  unfolding suffix_def
+  apply auto
+  using append_take_drop_id by metis
+
+lemma []: "w[0;1] = take 1 w"  by auto
+lemma []:"i \<ge> j \<Longrightarrow> w[i;j] = \<epsilon>" by auto
+lemma []:"i\<ge> (length w) \<Longrightarrow> w[i;j] = \<epsilon>" by auto
+lemma []: "\<epsilon>[i;j] = \<epsilon>" by auto
+lemma []: "w[i;i] = \<epsilon>" by auto
+lemma []: "j \<ge> (length w) \<Longrightarrow> w[0;j] = w" by auto
+lemma fac_nth:"i < (length w) \<Longrightarrow> w[i; i+1] = (w!i)#\<epsilon>"
+  by (simp add: take_Suc_conv_app_nth)
+
+
+
+ 
+
 
 lemma contains_iff_fac: "contains w v \<longleftrightarrow> factor v w"
   unfolding sublist_def
@@ -123,11 +103,8 @@ lemma if_contains_then_fac_has_prefix:"(contains w d) \<Longrightarrow> EX x y. 
 lemma epsilon_contains_epsilon[simp]: "contains \<epsilon> v \<Longrightarrow> v = \<epsilon>" by auto
 
 
-(* Find occurrence of a sub string *)
+subsection "Searching Factors"
 
-(* Finds the suffix of a word that starts with a given word *)
-definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word option" where
-"find_fac w v = List.find (prefix v) (rev (suffixes w))"
 
 lemma rev_suffixes:"set (suffixes w) = set (rev (suffixes w))"  by auto
 
@@ -187,7 +164,7 @@ lemma suffix_rev_length: "i < length (rev (suffixes w)) \<Longrightarrow> length
 
 lemma suffix_if:"v = rev ((suffixes w))!j \<and> j < length (rev ((suffixes w))) \<longleftrightarrow> (\<exists>x. w = x\<cdot>v \<and> (length x) = j)"
   apply(auto)
-  apply (metis add_diff_cancel_right' add_diff_inverse_nat length_additive length_rev length_suffixes not_less_eq nth_mem suffix_def suffix_rev_length suffixes_rev_set)
+  apply (metis add_diff_cancel_right' add_diff_inverse_nat length_append length_rev length_suffixes not_less_eq nth_mem suffix_def suffix_rev_length suffixes_rev_set)
   by (simp add: first_suffix_is_word nth_append suffixes_append)
 
 
@@ -197,14 +174,13 @@ lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> EX x y. w
 
 
 
-definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
-"find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
+
 
 
 
 lemma find_finds_factor:"find_index w v = Some r \<Longrightarrow> EX x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r"
   unfolding find_index_def
-  apply(auto simp add: length_additive option.case_eq_if split: if_splits)
+  apply(auto simp add:  option.case_eq_if split: if_splits)
   using find_returns_factor_at by blast
 
 
@@ -224,7 +200,7 @@ proof -
   then have "EX s x y. (\<exists>x'. w = x'\<cdot>x\<cdot>v\<cdot>y \<and> (length x') = i) \<and> (length x) = r  \<and> r = (length (drop  i w)) - (length s)"  by (metis Words.drop_append)
   then have "EX s x y x'. w = x'\<cdot>x\<cdot>v\<cdot>y \<and> (length x') = i \<and> (length x) = r  \<and> r = (length (drop  i w)) - (length s)" by auto
   then have "EX x y x'. w = x'\<cdot>x\<cdot>v\<cdot>y \<and> (length x') = i \<and> (length x) = r" by auto
-  then have "EX x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r + i"  by (metis append.assoc length_additive add.commute)
+  then have "EX x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r + i"  by (metis add.commute append.assoc length_append)
   then show ?thesis   by (simp)
 qed
 
@@ -264,18 +240,7 @@ proof -
   then show ?thesis  .
 qed
 
-primrec add_option:: "nat option \<Rightarrow> nat \<Rightarrow> nat option" where
-"add_option None _ = None"|
-"add_option (Some x) y = Some (x + y)"
 
-lemma add_option_is_0:"add_option x y = (Some 0) \<Longrightarrow> x = (Some 0) \<and> y = 0"  
-  apply(auto)
-   apply (metis add_option.simps(1) add_option.simps(2) option.collapse option.sel zero_eq_add_iff_both_eq_0)
-  by (metis (full_types) add_option.simps(1) add_option.simps(2) option.collapse option.sel zero_eq_add_iff_both_eq_0)
-
-
-definition replace::"'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
-"replace w v u = (case find_index w v of Some i \<Rightarrow> (take i w)\<cdot>u\<cdot>(drop (i+(length v)) w) | None => w)"
 
 lemma replace_epsilon: "replace w \<epsilon> u = u\<cdot>w"
   unfolding replace_def
@@ -292,7 +257,7 @@ theorem replace_factor: "contains w v \<Longrightarrow> \<exists>x y. (w= x\<cdo
   unfolding replace_def find_index_def
   apply(auto simp add: option.case_eq_if prefix_def )
   apply (metis contains_iff_find_fac option.distinct(1))
-  by (metis append.assoc append_eq_conv_conj find_returns_factor_at length_additive)
+  by (metis append.assoc append_eq_conv_conj find_returns_factor_at length_append)
   
   
 
@@ -310,7 +275,7 @@ theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. repl
       f3: "find_index w v = Some (nn v w)"
       using a by (meson contains_iff_find_index)
     then have "drop (nn v w + length v) w = aasa (nn v w) v w"
-      using f2 by (metis append.assoc append_eq_conv_conj length_additive)
+      using f2 by (metis append.assoc append_eq_conv_conj length_append)
     then show "\<exists>as asa. take (the (find_index w v)) w \<cdot> u \<cdot> drop (the (find_index w v) + length v) w = as \<cdot> u \<cdot> asa \<and> w = as \<cdot> v \<cdot> asa \<and> (\<forall>asa. length asa < length as \<longrightarrow> (\<forall>as. w \<noteq> asa \<cdot> v \<cdot> as))"
       using f3 f2 by (metis append_eq_conv_conj find_index_returns_first option.sel)
   qed

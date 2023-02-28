@@ -8,7 +8,7 @@ begin
 (* Regular Expressions *)
 datatype 'a::linorder regex = None  | Const "'a word" 
   | Union "'a regex" "'a regex" (infixr "\<squnion>" 65)
-  | Concat "'a regex" "'a regex"  (infixr "\<cdot>" 65)
+  | Concat "'a regex" "'a regex"  (infixr "\<odot>" 65)
   | Star "'a regex"  ("_\<^sup>\<star>")
   | Inter "'a regex" "'a regex" (infixr "\<sqinter>" 65)
   | Any ("?")
