@@ -18,12 +18,7 @@ datatype 'a::linorder regex = None  | Const "'a word"
 
 
 
-instantiation char::linorder begin
-definition less_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_char a b \<equiv> ((of_char a)::nat) < ((of_char b)::nat)" 
-definition less_eq_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_eq_char a b \<equiv> ((of_char a)::nat) \<le> ((of_char b)::nat)"
-instance apply(standard)
-  using less_char_def less_eq_char_def by auto
-end
+
 
 
 primrec lang:: "'a::linorder regex \<Rightarrow> 'a word set"  where

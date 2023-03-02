@@ -55,7 +55,7 @@ proof -
 qed
 
 lemma singleton_set: "{w. (length w) = 1} = {v| a v. v = a#\<epsilon>}"
-  using singleton_word by auto
+  by (auto simp add: length_Suc_conv)
 
 lemma epsilon_in_pow:"\<exists>n. \<epsilon> \<in> pow r n"
 proof -

@@ -1,5 +1,5 @@
 theory Words      
-  imports Main "HOL-Library.Sublist" "HOL-Library.List_Lexorder" HOL.Groups
+  imports Main "HOL-Library.Sublist" "HOL-Library.List_Lexorder" HOL.Groups "HOL-Library.Multiset"
 begin
 
 
@@ -11,6 +11,14 @@ notation Nil ("\<epsilon>")
 notation length ("\<bar>_\<bar>")
 no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
 
+instantiation char::linorder begin
+definition less_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_char a b \<equiv> ((of_char a)::nat) < ((of_char b)::nat)" 
+definition less_eq_char::"char \<Rightarrow> char \<Rightarrow> bool" where "less_eq_char a b \<equiv> ((of_char a)::nat) \<le> ((of_char b)::nat)"
+instance apply(standard)
+  using less_char_def less_eq_char_def by auto
+end
+
+value "''abc'' \<le> ''d''"
 
 primrec concat_all:: "'a word list \<Rightarrow> 'a word"
   where
@@ -26,6 +34,12 @@ primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
 "contains \<epsilon> v = (v = \<epsilon>)" |
 "contains (x#u) v = ((prefix v (x#u)) \<or> (contains u v))" 
 
+lemma contains_iff_factor:"contains w v \<longleftrightarrow> factor v w"
+  apply(induct w)
+   apply(simp)
+  by (simp add: sublist_Cons_right)
+
+
 definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word option" where
 "find_fac w v = List.find (prefix v) (rev (suffixes w))"
 
@@ -33,8 +47,7 @@ definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word optio
 definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
 "find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
 
-definition range :: "nat \<Rightarrow> nat \<Rightarrow> nat list" where
-"range i j = map (\<lambda> a. (nat a)) [(int i)..(int j)]"
+
 
 
 definition replace::"'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
@@ -155,7 +168,6 @@ lemma suffix_length: "i < length (suffixes w) \<Longrightarrow> length ((suffixe
   apply(induct w)
   by(auto simp add: nth_append)
 
-value "length ((rev (suffixes ''abc''))!1)"
 
 lemma suffix_rev_length: "i < length (rev (suffixes w)) \<Longrightarrow> length ((rev (suffixes w))!i) = (length w) - i"
   apply(auto)
@@ -171,11 +183,6 @@ lemma suffix_if:"v = rev ((suffixes w))!j \<and> j < length (rev ((suffixes w)))
 lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> EX x y. w = x\<cdot>v\<cdot>y \<and> (length x) = (length w) - (length s) \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'\<cdot>v\<cdot>y'))" 
   apply(auto simp add:  find_fac_def find_Some_iff prefix_def)
   by (metis add_diff_cancel_right' length_append length_rev length_suffixes suffix_if)
-
-
-
-
-
 
 
 lemma find_finds_factor:"find_index w v = Some r \<Longrightarrow> EX x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r"
@@ -242,6 +249,9 @@ qed
 
 
 
+
+subsection "Replacement"
+
 lemma replace_epsilon: "replace w \<epsilon> u = u\<cdot>w"
   unfolding replace_def
   apply(auto simp add: option.case_eq_if)
@@ -280,7 +290,7 @@ theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. repl
       using f3 f2 by (metis append_eq_conv_conj find_index_returns_first option.sel)
   qed
   
- 
+
 end
 
 
