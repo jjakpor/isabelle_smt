@@ -55,7 +55,7 @@ locale strings =
     and str_prefix: "v \<sqsubseteq> w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)" 
     and str_suffix: "v\<sqsupseteq>w \<longleftrightarrow> (\<exists>x. w = x\<cdot>v)" 
     and str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
-(* This is stated in SMT-LIB but invalid
+    (* This is stated in SMT-LIB but invalid
 str_indexof1: "str_contains v w \<Longrightarrow> \<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>))" and
 str_indexof2: "\<not> str_contains v w \<Longrightarrow> str_indexof w v i = -1" and
 *)
