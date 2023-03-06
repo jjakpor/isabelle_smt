@@ -51,6 +51,7 @@ definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word optio
 definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
   "find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
 
+
 definition replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
   "replace w v u = (case find_index w v of Some i \<Rightarrow> (take i w)\<cdot>u\<cdot>(drop (i+(length v)) w) | None => w)"
 
@@ -60,9 +61,19 @@ lemma drop_append: "n \<le> \<bar>w\<bar> \<and> x = drop n w  \<Longrightarrow>
   by (metis append_take_drop_id le_Suc_eq length_Cons length_take min_def not_less_eq_eq)
 
 
+fun factors:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word list" where
+  "factors w n  = [(w[i; i+n]). i\<leftarrow>[0..<\<bar>w\<bar>+1-n]]"
+
+definition enum_factors:: "'a word \<Rightarrow> nat \<Rightarrow> (nat \<times> 'a word) list"
+  where "enum_factors w n = (enumerate 0 (factors w n))"
+
+fun factor_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
+  "factor_index w v = map_option fst ((find (\<lambda>(i,v'). v'=v) (enum_factors w \<bar>v\<bar>)))"
+
+
 subsection "Factorization"
 
-lemma factor_iff:"factor v w \<longleftrightarrow> (\<exists>i. v = (w[i; i+(length v)]))"
+lemma factor_iff:"factor v w \<longleftrightarrow> (\<exists>i. v = (w[i; i+\<bar>v\<bar>]))"
   apply(auto)
   using append_eq_conv_conj sublist_def apply metis
   using append_take_drop_id  sublist_def by metis
@@ -92,10 +103,10 @@ lemma []: "i \<ge> j \<Longrightarrow> w[i;j] = \<epsilon>"
 lemma []: "i\<ge> (length w) \<Longrightarrow> w[i;j] = \<epsilon>" 
   by auto
 
-lemma []: "\<epsilon>[i;j] = \<epsilon>" 
+lemma factor_epsilon: "\<epsilon>[i;j] = \<epsilon>" 
   by auto
 
-lemma []: "w[i;i] = \<epsilon>" 
+lemma factor_len_0: "w[i;i] = \<epsilon>" 
   by auto
 
 lemma []: "j \<ge> (length w) \<Longrightarrow> w[0;j] = w" 
@@ -119,6 +130,13 @@ lemma if_contains_then_fac_has_prefix:"(contains w d) \<Longrightarrow> \<exists
 
 lemma epsilon_contains_epsilon[simp]: "contains \<epsilon> v \<Longrightarrow> v = \<epsilon>" 
   by auto
+
+
+
+
+
+
+
 
 
 subsection "Searching Factors"
@@ -323,6 +341,115 @@ proof -
   then show "\<exists>as asa. take (the (find_index w v)) w \<cdot> u \<cdot> drop (the (find_index w v) + length v) w = as \<cdot> u \<cdot> asa \<and> w = as \<cdot> v \<cdot> asa \<and> (\<forall>asa. length asa < length as \<longrightarrow> (\<forall>as. w \<noteq> asa \<cdot> v \<cdot> as))"
     using f3 f2 by (metis append_eq_conv_conj find_index_returns_first option.sel)
 qed
+
+lemma get_factor_factorizes:"v=(w[i;i+n]) \<and> i\<le>\<bar>w\<bar> \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i" 
+  apply(induct w)
+   apply(auto)
+  by (metis append_take_drop_id length_Cons length_take min.commute min_def)
+
+lemma factors_len_ge_w:"n > \<bar>w\<bar> \<Longrightarrow> factors w n = []" 
+  by auto
+lemma factors_len_eq_w: "n = \<bar>w\<bar> \<Longrightarrow> factors w n = [w]" 
+  by auto
+lemma factors_len_0: "set (factors w 0) = {\<epsilon>}" 
+  apply(induct w) by auto 
+
+lemma factors_set:"n\<le>\<bar>w\<bar> \<Longrightarrow> set (factors w n) = {v|v i. i\<in>{..\<bar>w\<bar>-n} \<and> v=(w[i;i+n])}" 
+  apply(induct n)
+   apply(auto)
+  by (metis Suc_diff_Suc less_Suc_eq_le less_imp_diff_less not_less_iff_gr_or_eq zero_less_diff)
+
+lemma factor_start_index:"v = w[i; i+\<bar>v\<bar>] \<Longrightarrow> i\<le>\<bar>w\<bar>-\<bar>v\<bar> \<or> v = \<epsilon>"
+  by (case_tac "i \<le> \<bar>w\<bar>-\<bar>v\<bar>", auto)
+
+
+lemma factor_iff_in_factors: "v \<in> set (factors w \<bar>v\<bar>) \<longleftrightarrow> factor v w" 
+proof 
+  assume "v \<in> set (factors w \<bar>v\<bar>)"
+  thus "factor v w" unfolding factor_iff by auto
+next assume a:"factor v w"
+  then have f1:"\<bar>v\<bar> \<le> \<bar>w\<bar>"  using sublist_length_le by blast
+  from a have "\<exists>i. v = w[i; i+\<bar>v\<bar>]" by (auto simp add: factor_iff)
+  then have "\<exists>i. v = w[i; i+\<bar>v\<bar>] \<and> i\<le>\<bar>w\<bar>-\<bar>v\<bar>" using factor_start_index by fastforce
+  then have " v \<in> {u|u i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> u=(w[i;i+\<bar>v\<bar>])}"  using atMost_iff by blast
+  thus " v \<in> set (factors w \<bar>v\<bar>)" using  factors_set f1 by blast
+qed
+
+lemma enum_factors_set:"n\<le>\<bar>w\<bar> \<Longrightarrow> set (enum_factors w n) = {(i,v)|v i. i\<in>{..\<bar>w\<bar>-n} \<and> v=(w[i;i+n])}" 
+  unfolding enum_factors_def 
+  by (auto simp add: in_set_enumerate_eq)
+
+
+lemma factor_iff_in_enum_factors:"\<exists>i. (i, v) \<in> set (enum_factors w \<bar>v\<bar>) \<longleftrightarrow> v \<in> set (factors w \<bar>v\<bar>)"
+  unfolding enum_factors_def 
+  apply(auto simp add:  enumerate_eq_zip in_set_impl_in_set_zip2 in_set_zipE )
+  by (metis (no_types, lifting) atLeastLessThan_upt in_set_impl_in_set_zip2 length_map list.set_map set_zip_rightD)
+
+lemma enum_factors_atmost_len: "(i, v) \<in> set (enum_factors w n) \<Longrightarrow> i\<le>\<bar>w\<bar> \<and> \<bar>v\<bar> \<le> \<bar>w\<bar>"
+  unfolding enum_factors_def
+  apply(induct n)
+   apply (auto simp add: in_set_enumerate_eq)
+  by (metis diff_is_0_eq' length_map length_upt less_Suc_eq_le list.size(3) map_nth nth_Cons_0 nth_append nth_map_upt zero_less_Suc)
+
+
+
+lemma factors_len: "n\<ge>1 \<Longrightarrow> \<bar>(factors w n)\<bar> \<le> \<bar>w\<bar>" 
+  apply(induct w) by (auto)
+
+lemma enum_factors_len: "\<bar>(factors w n)\<bar> = \<bar>(enum_factors w n)\<bar>"
+  by (simp add: enum_factors_def)
+
+lemma enum_factors_factorization:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>) \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i"
+proof -
+  assume a:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
+  then have f1:"i\<le>\<bar>w\<bar> \<and> \<bar>v\<bar> \<le> \<bar>w\<bar>" by (simp add: enum_factors_atmost_len)
+  from a have "(i, v) \<in> {(i,v)|v i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>])}" using enum_factors_set f1 by blast
+  then show ?thesis  using f1 get_factor_factorizes by blast
+qed
+
+lemma enum_factors_factorization2:"(i, v) \<notin> set(enum_factors w \<bar>v\<bar>) \<Longrightarrow> \<not>(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i)" 
+proof (case_tac "\<bar>v\<bar> \<le> \<bar>w\<bar>")
+  assume b:"\<not>(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
+  assume a:"\<bar>v\<bar> \<le> \<bar>w\<bar>"
+  then have "\<not> (i, v) \<in> {(i,v)|v i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>])}" using enum_factors_set b a by blast
+  then have "\<forall>i' v'.  i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>]) \<longrightarrow> i'\<noteq>i \<or> v'\<noteq>v" using enum_factors_set a by blast
+  then show "\<nexists>x y. w = x \<cdot> v \<cdot> y \<and> \<bar>x\<bar> = i" by auto
+next 
+  assume b:"\<not>(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
+  assume a:"\<not>\<bar>v\<bar> \<le> \<bar>w\<bar>"
+  then show "\<nexists>x y. w = x \<cdot> v \<cdot> y \<and> \<bar>x\<bar> = i" by auto
+qed
+
+lemma enum_factors_iff_factorization:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>) \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i)"
+  by (meson enum_factors_factorization enum_factors_factorization2)
+
+
+lemma enum_factors_nth: "i<\<bar>(enum_factors w n)\<bar> \<Longrightarrow> fst ((enum_factors w n) ! i) = i" 
+  by (metis add_0 enum_factors_def enum_factors_len fstI nth_enumerate_eq)
+
+
+lemma factor_index_some_iff: "factor_index w v = Some n \<Longrightarrow> find (\<lambda>(i,v'). v'=v) (enum_factors w \<bar>v\<bar>) = Some (n, v)"
+  apply(auto)
+  by (metis (mono_tags, lifting) find_Some_iff snd_conv split_beta)
+
+
+lemma factor_index_first:"factor_index w v = Some n \<Longrightarrow> (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> n' = \<bar>x'\<bar>))"
+proof -
+  assume "factor_index w v = Some n"
+  then have "find (\<lambda>(i,v'). v'=v) (enum_factors w \<bar>v\<bar>) = Some (n, v)" using factor_index_some_iff by blast
+  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! k) \<and> (n, v) = (enum_factors w \<bar>v\<bar>) ! k \<and> (\<forall>j<k. \<not> (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! j)))" using find_Some_iff  by (metis (no_types, lifting))
+  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (n, v) = (enum_factors w \<bar>v\<bar>) ! k \<and> (\<forall>j<n. \<not> (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! j)))" by (metis  enum_factors_nth fst_conv)
+  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (n,v) \<in> set (enum_factors w \<bar>v\<bar>) \<and> (\<forall>j<n.  \<not> (j,v) \<in> set (enum_factors w \<bar>v\<bar>)))"  by (metis (mono_tags, lifting) case_prodI enum_factors_nth fst_conv in_set_conv_nth)
+  then have "(\<forall>j<n.  \<not> (j,v) \<in> set (enum_factors w \<bar>v\<bar>))" by auto
+  thus ?thesis  using enum_factors_iff_factorization sublist_length_le by blast
+qed
+
+
+
+
+
+
+
 
 end
 
