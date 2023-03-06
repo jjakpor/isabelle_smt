@@ -107,7 +107,7 @@ fun re_loop::"'a::linorder regex \<Rightarrow> nat \<Rightarrow> nat \<Rightarro
 
 lemma re_loop_iff1: 
   assumes "a \<le> b"
-  shows "w\<in> lang (re_loop r a b) \<longleftrightarrow> (\<exists>x. a \<le> x \<and> x \<le> b \<and> w \<in> lang (re_pow r x))"
+  shows "w \<in> lang (re_loop r a b) \<longleftrightarrow> (\<exists>x. a \<le> x \<and> x \<le> b \<and> w \<in> lang (re_pow r x))"
   using assms
   apply(induct b)
   apply(auto simp add: UnE le_SucI not0_implies_Suc not_less_eq_eq re_union_correct)

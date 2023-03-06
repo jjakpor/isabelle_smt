@@ -220,10 +220,10 @@ theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<
 theorem re_pow_correct2: "lang (re_pow (Suc n) r ) = concat (lang r) (lang (re_pow n r))"
   by (simp add: RegEx.re_concat_correct)
 
-theorem re_loop_correct1: "a \<le> b \<Longrightarrow> lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
-  apply(auto)
-  using re_loop_iff1 apply (metis atLeastAtMost_iff)
-  using re_loop_iff1 le_trans by blast
+theorem re_loop_correct1:
+  assumes "a \<le> b"
+  shows "lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
+  using re_loop_iff1[of a b] using assms atLeastAtMost_iff by fastforce
 
 (* missing: re_all *)
 
@@ -253,9 +253,9 @@ proof (unfold_locales)
   show str_substr1: 
     "0 \<le> m \<and> m < \<bar>w\<bar> \<and> 0 < n \<Longrightarrow>
         \<exists>!v. str_substr w m n = v \<and> 
-        (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and>  \<bar>v\<bar> = min n (\<bar>w\<bar> - m))" 
+        (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = min n (\<bar>w\<bar> - m))" 
     using substr_correct1 by auto 
-  show str_substr2: "\<not>(0 \<le> m \<and> m <  \<bar>w\<bar> \<and> 0 < n) \<Longrightarrow> str_substr w m n = \<epsilon>" 
+  show str_substr2: "\<not>(0 \<le> m \<and> m < \<bar>w\<bar> \<and> 0 < n) \<Longrightarrow> str_substr w m n = \<epsilon>" 
     using substr_correct2 by presburger
   show "str_prefixof v w \<longleftrightarrow>( \<exists>u. w = v\<cdot>u)" 
     by (simp add: prefix_def)
