@@ -241,7 +241,7 @@ qed
 lemma find_index_returns_first: 
   assumes "find_index w v = Some s"
   shows "\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = s \<and> (\<forall>x'. (length x') < s \<longrightarrow> (\<nexists>y'. w = x'\<cdot>v\<cdot>y'))" 
-  apply(auto simp add:  find_index.elims find_index.simps  option.case_eq_if split: if_splits)
+  apply(auto simp add:  find_index.elims  option.case_eq_if split: if_splits)
   using find_fac_returns_first find_index.elims assms 
   by (smt (verit, del_insts) option.case_eq_if option.distinct(1) option.exhaust_sel option.sel) (* todo *)
 

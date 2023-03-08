@@ -332,16 +332,17 @@ theorem re_comp: "lang (re_comp r) = UNIV - (lang r)"
 theorem re_diff: "lang (re_diff r1 r2) = lang r1 - lang r2" 
   by (simp add: re_diff_correct)
 
+
 theorem re_pow1: "lang (re_pow 0 r) = {\<epsilon>}" 
   by auto
 
 theorem re_pow2: "\<forall>n. re_pow (Suc n) r =  re_concat r (re_pow n r)" 
   by simp
 
-theorem  re_loop1: "\<And> a b. a \<le> b \<Longrightarrow> lang (re_loop a b r) = (\<Union>x\<in>{a..b}. lang (re_pow x r))" 
-  apply(auto)
-  using re_loop_iff1 apply (metis atLeastAtMost_iff)
-  using re_loop_iff1 le_trans by blast
+theorem  re_loop1: 
+ assumes "a \<le> b"
+  shows "lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
+  using re_loop_iff1[of a b] using assms atLeastAtMost_iff by fastforce
 
 theorem re_loop2: "\<And> a b. a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
   by (simp add: re_loop_None_if)
