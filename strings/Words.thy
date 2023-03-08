@@ -13,6 +13,7 @@ no_notation Groups.abs_class.abs ("\<bar>_\<bar>")
 
 instantiation char::linorder begin
 
+(* Just for convenience, so we can use literal chars for testing *)
 definition less_char::"char \<Rightarrow> char \<Rightarrow> bool" where 
   "less_char a b \<equiv> ((of_char a)::nat) < ((of_char b)::nat)"
 
@@ -28,8 +29,8 @@ primrec concat_all:: "'a word list \<Rightarrow> 'a word" where
   "concat_all [] = \<epsilon>" |
   "concat_all (w#ws) = w\<cdot>(concat_all ws)"
 
-abbreviation factor:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where 
-  "factor \<equiv> sublist"
+fun factor:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where 
+  "factor v w = sublist v w"
 
 fun get_factor:: "'a word \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> 'a word" ("_[_;_]" 101) where 
   "get_factor w i j = (if i \<le> j then take (j-i) (drop i w) else \<epsilon>)"
@@ -106,8 +107,8 @@ lemma contains_iff_fac: "contains w v \<longleftrightarrow> factor v w"
   unfolding sublist_def
   apply(induct w)
    apply(auto simp add: prefix_def)+
-   apply (metis append_Cons)
-  by (metis append_eq_Cons_conv)
+  by (auto simp add: sublist_Cons_right prefix_def)
+  
 
 lemma not_contains_no_fac_has_prefix:"(\<not>contains w d) \<Longrightarrow> w = x\<cdot>y \<Longrightarrow> (\<not> prefix d y)"
   by (auto simp add: contains_iff_fac sublist_append)
