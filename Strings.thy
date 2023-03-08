@@ -1,27 +1,40 @@
 theory Strings
-  imports Core "strings/RegEx" "strings/Words"  "HOL-Library.Numeral_Type" Smt
+  imports Core "strings/RegEx" "strings/Words"  "HOL-Library.Numeral_Type"  "HOL-Library.List_Lexorder"
 begin
 
 no_notation List.length ("\<bar>_\<bar>")
 no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
 
 
-section "An interpretation for the theory of string"
-
+section "Standard model for the SMT-LIB Theory of String"
 
 subsection "Definition of Unicode characters"
 
-type_synonym uc_word = "196607 word"
+text "The standard defines two sorts, String and RegLan. 
+In the standard model, the domain of these sorts are fixed as the set of all words over the 
+alphabet of unicode code points from 0 to 196606, and the powerset of this set, respectively.
+We define the set of unicode code points as the ring of integers up to 196606.
+Words as lists over this alphabet (type) and regular languages as regular expression over the
+alphabet, equipped with a function that maps expression to actual languages."
 
-type_synonym uc_regex = "196607 regex"
+type_synonym uc_char = "196607"
+type_synonym uc_word = "uc_char word"
+type_synonym uc_regex = "uc_char regex"
 
 definition UC:: "uc_word set" where "UC = {w. True}"
 
-lemma "UNIV = UC"  
-  by (simp add: UC_def)
+
+subsection "Interpretation of the SMT-LIB theory of strings symbols"
+
+text "In the following, we interprete all symbols of the SMT-LIB theory of strings.
+The interprations are based on primitive functions implemented on lists and regular expressions.
+Note that the symbols are not identicaly to the one state in the SMT-LIB theory due to syntactic
+restrictions of Isabelle/HOL. However, there is a one to one mapping between the symbols used here
+and the symbols used in SMT-LIB. This mapping is specified in 'spec.json'."
 
 
-subsection "Implementation of string constraints"
+abbreviation str_char:: "uc_char \<Rightarrow> uc_word" where
+  "str_char a \<equiv> a#\<epsilon>"
 
 abbreviation str_concat:: "uc_word \<Rightarrow> uc_word  \<Rightarrow> uc_word" where 
   "(str_concat) u v \<equiv> u\<cdot>v" 
@@ -45,10 +58,10 @@ abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
   "str_contains \<equiv> Words.contains"
 
 abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof h n s \<equiv> 
-     if s \<ge> 0 then 
-       (case find_index (drop (nat s) h) n of 
-           Some r \<Rightarrow> (int r+s) 
+  "str_indexof w v i \<equiv> 
+     if i \<ge> 0 \<and> i\<le>\<bar>w\<bar> then 
+       (case factor_index (drop (nat i) w) v of 
+           Some r \<Rightarrow> (int r+i) 
          | option.None \<Rightarrow> -1
        ) 
      else (-1)"
@@ -57,7 +70,7 @@ abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word 
   "str_replace \<equiv> replace"
 
 abbreviation str_in_re:: "uc_word \<Rightarrow> uc_regex \<Rightarrow> bool" where 
-  "str_in_re w R \<equiv> re_contains w R"
+  "str_in_re w r \<equiv> nullable (rderivw w r)"
 
 abbreviation str_to_re:: "uc_word \<Rightarrow> uc_regex" where 
   "str_to_re w \<equiv> regex.Const w"
@@ -67,6 +80,9 @@ abbreviation re_none:: "uc_regex" where
 
 abbreviation re_allchar:: "uc_regex" where 
   "re_allchar \<equiv> regex.Any"
+
+abbreviation re_all::"uc_regex" where
+"re_all \<equiv> re_star re_allchar"
 
 abbreviation re_concat:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where 
   "re_concat \<equiv> RegEx.re_concat"
@@ -103,7 +119,26 @@ abbreviation re_loop:: "nat \<Rightarrow> nat \<Rightarrow> uc_regex \<Rightarro
   "re_loop a b r \<equiv> RegEx.re_loop r a b"
 
 
-section "String Length"
+subsection "Model Proofs"
+
+text "We shows that our interpretation of the functions satisfy all conditions stated by the SMT-LIB theory 
+of strings, which thus proofs it to be equivalent to the standard model of the theory."
+
+
+theorem "UNIV = UC"  
+  by (simp add: UC_def)
+
+subsubsection "Lexicographic order"
+
+theorem lexord_strict:"v < w \<longleftrightarrow> (v, w) \<in> lexord {(a, b). a<b}" 
+  by (simp add: list_less_def)
+
+theorem lexord:"v \<le> w \<longleftrightarrow> (v, w) \<in> lexord {(a, b). a<b} \<or> v = w" 
+  by (simp add: list_le_def list_less_def)
+
+subsubsection "Length"
+
+text "Some lemmas about string length used later on"
 
 lemma length_ge_0: "\<bar>w\<bar> \<ge> 0" 
   by auto
@@ -133,11 +168,11 @@ lemma length_int_nat_sub_min:
 lemma of_nat_nat_inv: "x \<ge> 0 \<Longrightarrow> of_nat (nat x) = x" 
   by auto
 
+subsubsection "Substrings (str.at, str.substr)"
 
-section "Substring, Prefix, Suffix, Indexof"
+theorem str_at:"str_at w n = str_substr w n 1" 
+  by (simp split: if_splits add: diff_nat_eq_if)
 
-
-subsection "Substrings"
 
 lemma substr_factor_equal:
   assumes "0 \<le> m"
@@ -146,13 +181,11 @@ lemma substr_factor_equal:
   shows "str_substr w m n = (w[nat m; nat m + nat n])"
   using assms diff_nat_eq_if by auto
 
-theorem substr_correct1: 
-  fixes m::"int" and n::"int"
-  assumes "0 \<le> m"
-    and "m < \<bar>w\<bar>"
-    and "0 < n" 
-  shows "\<exists>!v. str_substr w m n = v \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = (min n (\<bar>w\<bar> - m) ))"
-proof -
+
+theorem str_substr1:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  shows "\<exists>!v. str_substr w m n = v \<and> (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and>  \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
+  proof -
   from assms have "nat m < (length w) \<and> nat m \<le> nat m + nat n" by auto
   then have "\<exists>!v. (w[nat m; nat m + nat n]) = v \<and>
              (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = nat m \<and>
@@ -173,148 +206,146 @@ proof -
     by blast
 qed
 
-theorem substr_correct2:
-  shows "\<not>(0\<le>m \<and> m < \<bar>w\<bar> \<and> 0 < n) \<Longrightarrow> (str_substr w m n = \<epsilon>)"
-  by auto
+theorem str_substr2:
+  assumes "\<not>(0 \<le> m \<and> m <  \<bar>w\<bar> \<and> 0 < n)"
+  shows "str_substr w m n = \<epsilon>"
+proof -
+  from assms have assm:"(0 > m \<or> m \<ge> \<bar>w\<bar> \<or> 0 \<ge> n)" (is "?A \<or> ?B \<or> ?C") by auto
+  then show ?thesis  using assm by fastforce
+qed
+
+subsubsection "Factors (str.prefixof, str.suffixof, str.contains)"
+
+theorem str_prefix: "str_prefixof v w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)"   by (simp add: prefix_def)
+
+theorem str_suffix: "str_suffixof v w \<longleftrightarrow> (\<exists>x. w = x\<cdot>v)"   by (simp add: suffix_def)
+
+theorem str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
+  by (auto simp add: contains_iff_factor sublist_def)
+  
 
 
-subsection "Prefix"
-
-(* Correctness of prefixof: \<lbrakk>str.prefixof\<rbrakk>(v, w) = true iff w = vx₂ for some word x *)
-theorem prefixof_correct: "str_prefixof v w \<longleftrightarrow> (EX x. w = v@x)"
-  by (simp add: prefix_def)
+subsubsection "Searching and replacing (str.indexof, str.replace variants)"
 
 
-subsection "Suffix"
+text "The SMT-LIB standard states the following theorems
 
-(* Correctness of suffixof: \<lbrakk>str.suffixof\<rbrakk>(v, w) = true iff w = xv₂ for some word x *)
-theorem suffix_correct: "str_suffixof v w \<longleftrightarrow> (EX x. w = x@v)"
-  by (simp add: suffix_def) 
+str_contains v w \<Longrightarrow> \<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>)) and
+\<not>str_contains v w \<Longrightarrow> str_indexof w v i = -1 and
 
+However, they are inconsistent. We find counterexamples.
 
-subsection "Indexof"
+- if i\<le>\<bar>w\<bar> no such n exists 
+  - Example: (indexof 'ab' \<epsilon> 3 = n) but no n wa and words x y satisfy 'ab' = x\<cdot>\<epsilon>\<cdot>y \<and> \<bar>x\<bar>=n \<and> n\<ge>3
+- if (str_contains v w) but not str_contains (str_substr w i \<bar>w\<bar>) v, then no such n exists
+  - Example: (indexof 'ab' 'a' 1 = n) but no n and words x y satisfy 'ab' = x\<cdot>'a'\<cdot>y \<and> \<bar>x\<bar> = n \<and> n\<ge>1
 
-theorem indexof_correct1:
-  fixes i::int
-  assumes "i\<ge>0" and "str_contains (str_substr w i \<bar>w\<bar>) v"
-  shows "\<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>))"
+To be consistent, we need (str_contains (str_substr w i \<bar>w\<bar>) v)  instad of 
+(str_contains v w), and additionally need the premise i\<le>\<bar>w\<bar>.
+If either of these premises is not met, or i<0, the the function must evaluate to -1.
+"
+
+(* Two helpful lemmas *)
+lemma indexof_if_not_contains:"\<not> (str_contains (str_substr w i \<bar>w\<bar>) v) \<Longrightarrow> str_indexof w v i = -1" 
+  sorry
+lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i \<ge> 0" 
   sorry
 
-theorem indexof_correct2: 
-  "(i < 0 \<or> \<not>(str_contains (str_substr w i \<bar>w\<bar>) v)) \<Longrightarrow> (str_indexof w v i) = -1"
+theorem str_indexof1: 
+  assumes "i\<ge>0" and "i\<le>\<bar>w\<bar>" and "str_contains (str_substr w i \<bar>w\<bar>) v"
+  shows "\<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> 
+          (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n' = \<bar>x'\<bar>))" 
   sorry
 
+theorem str_indexof2: 
+  assumes "i<0 \<or> i>\<bar>w\<bar> \<or> \<not> str_contains (str_substr w i \<bar>w\<bar>) v" 
+  shows "str_indexof w v i = -1" 
+  sorry
 
-section "Regular Constraints"
+theorem str_replace1:
+  assumes "str_contains w v"
+  shows " \<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. \<bar>x'\<bar> < \<bar>x\<bar> \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))"
+  sorry
 
-theorem re_range_correct1: "(length l) = 1 \<and> (length u) = 1 \<Longrightarrow> (lang (re_range l u)) = {v|v. l \<le> v \<and> v \<le> u \<and> \<bar>v\<bar> = 1}" 
-  apply(cases \<open>(l, u)\<close> rule:re_range.cases)
+theorem str_replace2: 
+  assumes "\<not> str_contains w v"
+  shows "str_replace w v u = w" 
+  sorry
+
+(* TODO: Add replace_all, replace_re, replace_all_re! *)
+
+subsubsection "Regular languages"
+
+text "We represent regular languages using regular expression accompanied by a lang function that
+maps expression to languages."
+
+text "We first who that this lang operator maps into the powerset of all unicode strings"
+
+theorem re_lang_unicode:"range (lang::(uc_char regex \<Rightarrow> uc_char word set)) \<subseteq> Pow UC"
+  apply(auto)
+  using UC_def by blast
+
+theorem str_to_re: "lang (str_to_re w) = {w}" by auto
+
+theorem str_in_re:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)" 
+  by (auto simp add: derivw_nullable_contains contains_derivw_nullable)
+  
+
+paragraph "Regular Operators"
+
+theorem re_none: "lang re_none = {}" by auto
+
+theorem re_allchar: "lang re_allchar = {w. \<bar>w\<bar> = 1}" by auto
+
+theorem re_all: "lang re_all = UC" 
+  apply(auto)
+  using UC_def apply blast
+  by (metis One_nat_def singleton_set star_of_singletons_is_univ)
+
+theorem re_concat: "lang (re_concat r e) = {x\<cdot>y|x y. x \<in> lang r \<and> y \<in> lang e}" 
+  by (simp add: Regular.concat_def re_concat_correct)
+
+theorem re_union: "lang (re_union r e) = {w|w. w \<in> lang r \<or> w \<in> lang e}" 
+  by (simp add: Un_def re_union_correct)
+
+theorem re_inter: "lang (re_inter r1 r2) = {w|w. w\<in> lang r1 \<and> w \<in> lang r2}" 
+  by (auto simp add:  re_inter_correct)
+
+theorem re_star: "lang (re_star r) = k \<Longrightarrow> \<epsilon> \<in> k \<and> {x\<cdot>y|x y. x \<in> lang r \<and> y \<in> k} \<subseteq> k" 
+  using Regular.concat_def concat_star_subset re_star_correct by fastforce
+  
+theorem re_plus: "lang (re_plus r) = lang (re_concat r (re_star r))"  
+ by auto
+
+theorem re_range1: "\<bar>l\<bar> = 1 \<and> \<bar>u\<bar> = 1 \<Longrightarrow> lang (re_range l u) = {v| v. l \<le> v \<and>  v\<le>u \<and> \<bar>v\<bar> = 1}" 
+ apply(cases \<open>(l, u)\<close> rule:re_range.cases)
       apply (auto split: if_splits)
    apply (metis (no_types, lifting) Cons_less_Cons length_0_conv length_Suc_conv linorder_not_le)
   by (meson Cons_le_Cons dual_order.trans)
 
-theorem re_range_correct2: "(length l) \<noteq> 1 \<or> (length u) \<noteq> 1 \<Longrightarrow> (lang (re_range l u)) = {}" 
+theorem re_range2: "\<bar>l\<bar> \<noteq> 1 \<or> \<bar>u\<bar> \<noteq> 1 \<Longrightarrow> lang (re_range l u) = {}" 
   by (cases \<open>(l, u)\<close> rule:re_range.cases) (auto split: if_splits)
 
+theorem re_comp: "lang (re_comp r) = UNIV - (lang r)"
+  by (simp add: Compl_eq_Diff_UNIV re_comp_correct)
 
-theorem re_pow_correct2: "lang (re_pow (Suc n) r ) = concat (lang r) (lang (re_pow n r))"
-  by (simp add: RegEx.re_concat_correct)
+theorem re_diff: "lang (re_diff r1 r2) = lang r1 - lang r2" 
+  by (simp add: re_diff_correct)
 
-theorem re_loop_correct1: "a \<le> b \<Longrightarrow> lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
+theorem re_pow1: "lang (re_pow 0 r) = {\<epsilon>}" 
+  by auto
+
+theorem re_pow2: "\<forall>n. re_pow (Suc n) r =  re_concat r (re_pow n r)" 
+  by simp
+
+theorem  re_loop1: "\<And> a b. a \<le> b \<Longrightarrow> lang (re_loop a b r) = (\<Union>x\<in>{a..b}. lang (re_pow x r))" 
   apply(auto)
   using re_loop_iff1 apply (metis atLeastAtMost_iff)
   using re_loop_iff1 le_trans by blast
 
-(* missing: re_all *)
+theorem re_loop2: "\<And> a b. a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
+  by (simp add: re_loop_None_if)
 
 
-subsection "Valid interpretation of SMT-LIB theory of Strings"
-
-interpretation uc_strings: Smt.strings
-  str_concat \<epsilon> less_eq less less_eq less str_len str_at str_substr str_prefixof str_suffixof 
-  str_contains str_indexof str_replace str_in_re str_to_re
-  re_none re_allchar re_concat re_union re_inter re_star re_plus re_range re_opt re_comp
-  re_diff re_pow re_loop RegEx.lang
-proof (unfold_locales)
-  fix u v w::uc_word
-  fix n m i:: int
-  show "u\<cdot>(v\<cdot>w) =  (u\<cdot>v)\<cdot>w" 
-    by auto 
-  show "w\<cdot>\<epsilon> = w" 
-    by auto
-  show "\<epsilon>\<cdot>w = w" 
-    by auto
-  show "\<bar>w\<bar> = 0 \<longleftrightarrow> w = \<epsilon>" 
-    by auto 
-  show "\<bar>u\<cdot>v\<bar> = \<bar>u\<bar> + \<bar>v\<bar>" 
-    by auto
-  show "str_at w n = str_substr w n 1" 
-    by (simp split: if_splits add: diff_nat_eq_if)
-  show str_substr1: 
-    "0 \<le> m \<and> m < \<bar>w\<bar> \<and> 0 < n \<Longrightarrow>
-        \<exists>!v. str_substr w m n = v \<and> 
-        (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and>  \<bar>v\<bar> = min n (\<bar>w\<bar> - m))" 
-    using substr_correct1 by auto 
-  show str_substr2: "\<not>(0 \<le> m \<and> m <  \<bar>w\<bar> \<and> 0 < n) \<Longrightarrow> str_substr w m n = \<epsilon>" 
-    using substr_correct2 by presburger
-  show "str_prefixof v w \<longleftrightarrow>( \<exists>u. w = v\<cdot>u)" 
-    by (simp add: prefix_def)
-  show "str_suffixof v w \<longleftrightarrow> (\<exists>u. w = u\<cdot>v)"
-    by (simp add: suffix_def)
-  show "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
-    using contains_iff_factor sublist_def by blast
-  show "i\<ge> 0 \<and> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> 
-          \<exists>n. str_indexof w v i = n \<and> 
-            (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> 
-            (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>))" 
-    using indexof_correct1 by auto
-  show "i<0 \<or> \<not> str_contains (str_substr w i \<bar>w\<bar>) v  \<Longrightarrow> str_indexof w v i = -1" 
-    using indexof_correct2 by auto
-  show "str_contains w v \<Longrightarrow> 
-          \<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. \<bar>x'\<bar> < \<bar>x\<bar> \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))" 
-    using replace_first_factor by fastforce
-  show "\<not> str_contains w v \<Longrightarrow> str_replace w v u = w"
-    by (simp add: replace_id_if_not_contains)
-
-  fix r e::uc_regex
-  fix k::"uc_word set"
-  fix a b::"nat"
-  show "str_in_re w r \<longleftrightarrow> w \<in> (lang r)" 
-    by (auto simp add: re_contains_def derivative_correctness)
-  show "lang (str_to_re w) = {w}" 
-    by simp
-  show "lang re_none = {}" 
-    by simp
-  show "lang re_allchar = {w. int (length w) = 1}" 
-    by simp
-  show "lang (re_concat r e) = {str_concat x y |x y. x \<in> lang r \<and> y \<in> lang e}"
-    by (simp add: Regular.concat_def re_concat_correct)
-  show "lang (Strings.re_union r e) = {w |w. w \<in> lang r \<or> w \<in> lang e}"
-    by (simp add: Un_def re_union_correct)
-  show "lang (Strings.re_inter r e) = {w |w. w \<in> lang r \<and> w \<in> lang e}"
-    by (auto simp add: re_inter_correct)
-  show "lang (Strings.re_star r) = k \<Longrightarrow> \<epsilon> \<in> k \<and> {str_concat x y |x y. x \<in> lang r \<and> y \<in> k} \<subseteq> k" 
-    using concat_star_subset re_star_correct  Regular.concat_def by fastforce
-  show "lang (Strings.re_plus r) = lang (Strings.re_concat r (Strings.re_star r))" 
-    by (simp add: re_plus_def)
-  show "\<bar>u\<bar> = 1 \<and> \<bar>w\<bar> = 1 \<Longrightarrow> lang (Strings.re_range u w) = {v |v. u \<le> v \<and> v \<le> w \<and> int (length v) = 1}" 
-    using re_range_correct1 by simp
-  show "\<bar>u\<bar> \<noteq> 1 \<or> \<bar>w\<bar> \<noteq> 1 \<Longrightarrow> lang (Strings.re_range u w) = {}"
-    by (simp add: re_range_correct2)
-  show "lang (re_comp r) = UNIV - lang r" 
-    by (auto simp add: re_comp_correct UC_def)
-  show "lang (re_diff r e) = lang r - lang e"
-    by (simp add: re_diff_correct)
-  show "lang (re_pow 0 r) = {\<epsilon>}" 
-    by auto
-  show "\<forall>n. Strings.re_pow (Suc n) r = Strings.re_concat r (Strings.re_pow n r)" 
-    by simp
-  show "a \<le> b \<Longrightarrow> lang (Strings.re_loop a b r) = (\<Union>x\<in>{a..b}. lang (Strings.re_pow x r))" 
-    using re_loop_correct1 by presburger
-  show "b < a \<Longrightarrow> lang (Strings.re_loop a b r) = {}" 
-    by (simp add: re_loop_iff2)
-qed
-
-lemmas defs = replace_def find_fac_def find_index_def contains_def re_plus_def suffix_def prefix_def
 
 end

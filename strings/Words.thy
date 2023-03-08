@@ -24,8 +24,6 @@ instance apply(standard)
 
 end
 
-value "''abc'' \<le> ''d''"
-
 primrec concat_all:: "'a word list \<Rightarrow> 'a word" where
   "concat_all [] = \<epsilon>" |
   "concat_all (w#ws) = w\<cdot>(concat_all ws)"
@@ -45,14 +43,14 @@ lemma contains_iff_factor:"contains w v \<longleftrightarrow> factor v w"
    apply(simp)
   by (simp add: sublist_Cons_right)
 
-definition find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word option" where
+fun find_fac:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word option" where
   "find_fac w v = List.find (prefix v) (rev (suffixes w))"
 
-definition find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
+fun find_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
   "find_index w v = (case find_fac w v of Some r \<Rightarrow>  Some ((length w) - (length r)) | None \<Rightarrow> None)"
 
 
-definition replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
+fun replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
   "replace w v u = (case find_index w v of Some i \<Rightarrow> (take i w)\<cdot>u\<cdot>(drop (i+(length v)) w) | None => w)"
 
 lemma drop_append: "n \<le> \<bar>w\<bar> \<and> x = drop n w  \<Longrightarrow> \<exists>v. ((w = v\<cdot>x) \<and> (length v) = n)"
@@ -64,7 +62,7 @@ lemma drop_append: "n \<le> \<bar>w\<bar> \<and> x = drop n w  \<Longrightarrow>
 fun factors:: "'a word \<Rightarrow> nat \<Rightarrow> 'a word list" where
   "factors w n  = [(w[i; i+n]). i\<leftarrow>[0..<\<bar>w\<bar>+1-n]]"
 
-definition enum_factors:: "'a word \<Rightarrow> nat \<Rightarrow> (nat \<times> 'a word) list"
+fun enum_factors:: "'a word \<Rightarrow> nat \<Rightarrow> (nat \<times> 'a word) list"
   where "enum_factors w n = (enumerate 0 (factors w n))"
 
 fun factor_index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat option" where
@@ -105,6 +103,9 @@ lemma []: "i\<ge> (length w) \<Longrightarrow> w[i;j] = \<epsilon>"
 
 lemma factor_epsilon: "\<epsilon>[i;j] = \<epsilon>" 
   by auto
+
+lemma factor_suffix: "\<bar>w\<bar> \<le> m \<Longrightarrow> w[i; m] = drop i w" 
+  by (auto)
 
 lemma factor_len_0: "w[i;i] = \<epsilon>" 
   by auto
@@ -154,26 +155,26 @@ lemma first_suffix_is_word:"rev (suffixes w)!0 = w"
   by (metis Nil_is_rev_conv hd_conv_nth hd_rev last_suffixes suffixes_not_Nil)
 
 lemma find_prefix: "find_fac (v\<cdot>w) v = Some (v\<cdot>w)"
-  by (auto simp add: find_fac_def find_Some_iff first_suffix_is_word prefix_def)
+  by (auto simp add:  find_Some_iff first_suffix_is_word prefix_def)
 
 lemma find_fac_epsilon: "find_fac w \<epsilon> = Some w"
   unfolding prefix_def by (metis append_Nil find_prefix)
 
 lemma find_fac_in_epsilon: "find_fac \<epsilon> w = Some v \<Longrightarrow> w = \<epsilon>"
-  by (auto simp add: find_fac_def split: if_splits)
+  by (auto simp add:  split: if_splits)
 
 lemma find_returns_factor_at:
   assumes "find_fac w v = Some s"
   shows "\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = (length w) - (length s)"
   using assms
-  apply(auto simp add: prefix_def suffix_def find_fac_def)
+  apply(auto simp add: prefix_def suffix_def)
   by (metis add_diff_cancel_right' find_Some_iff length_append nth_mem prefix_def suffix_def suffixes_rev_set)
 
 lemma contains_iff_find_fac: "(\<exists>u. find_fac w v = Some u) \<longleftrightarrow> contains w v"
   apply(auto)
-  using contains_iff_fac find_returns_factor_at apply blast
+  using contains_iff_fac find_returns_factor_at  apply (metis find_fac.elims sublist_appendI) 
   apply(auto simp add: contains_iff_fac)
-  by (metis find_None_iff2 find_fac_def in_set_suffixes not_Some_eq rev_suffixes sublist_altdef')
+  by (metis find_None_iff2 in_set_suffixes not_Some_eq rev_suffixes sublist_altdef')
 
 lemma suffixes_count: "length (suffixes w) = (length w) + 1"
   by (induct_tac w) auto
@@ -195,16 +196,14 @@ lemma suffix_if:"v = rev ((suffixes w))!j \<and> j < length (rev ((suffixes w)))
   by (simp add: first_suffix_is_word nth_append suffixes_append)
 
 lemma find_fac_returns_first: "find_fac w v = Some s \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = (length w) - (length s) \<and> (\<forall> x'. (length x')<(length x) \<longrightarrow> (\<nexists>y'. w = x'\<cdot>v\<cdot>y'))" 
-  apply(auto simp add:  find_fac_def find_Some_iff prefix_def)
+  apply(auto simp add:  find_Some_iff prefix_def)
   by (metis add_diff_cancel_right' length_append length_rev length_suffixes suffix_if)
 
 lemma find_finds_factor:"find_index w v = Some r \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r"
-  unfolding find_index_def
   apply(auto simp add:  option.case_eq_if split: if_splits)
-  using find_returns_factor_at by blast
+  using find_returns_factor_at   by (metis find_fac.elims)
 
 lemma contains_iff_find_index: "(\<exists>r. find_index w v = Some r) \<longleftrightarrow> contains w v"
-  apply(auto simp add: find_index_def)
   using contains_iff_find_fac by force+
 
 lemma find_index_of_suffix:
@@ -213,9 +212,9 @@ lemma find_index_of_suffix:
   shows "\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = r + i"
 proof -
   from assms have "\<exists>s. find_fac (drop  i w) v = Some s"   
-    by (metis find_index_def option.collapse option.distinct(1) option.simps(4)) 
-  then have "\<exists>s. find_fac (drop i w) v = Some s \<and> r = (length (drop i w)) - (length s)"   
-    by (metis assms(1) find_index_def option.case(2) option.inject)
+    using contains_iff_find_fac contains_iff_find_index by blast 
+  then have "\<exists>s. find_fac (drop i w) v = Some s \<and> r = (length (drop i w)) - (length s)" 
+    using find_index.elims assms by auto
   then have "\<exists>s x y. (drop  i w) = x\<cdot>v\<cdot>y \<and> (length x) = (length (drop  i w))-(length s)
                \<and> r = (length (drop  i w)) - (length s)"  
     by (metis Ex_list_of_length find_returns_factor_at)
@@ -242,15 +241,15 @@ qed
 lemma find_index_returns_first: 
   assumes "find_index w v = Some s"
   shows "\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = s \<and> (\<forall>x'. (length x') < s \<longrightarrow> (\<nexists>y'. w = x'\<cdot>v\<cdot>y'))" 
-  using assms unfolding find_index_def
-  apply(auto simp add: option.case_eq_if split: if_splits)
-  using find_fac_returns_first by metis
+  apply(auto simp add:  find_index.elims find_index.simps  option.case_eq_if split: if_splits)
+  using find_fac_returns_first find_index.elims assms 
+  by (smt (verit, del_insts) option.case_eq_if option.distinct(1) option.exhaust_sel option.sel) (* todo *)
 
 theorem find_prefix_is_word: "find_fac (v\<cdot>u) v = Some (v\<cdot>u)"
-  by (auto simp add: find_fac_def  prefix_def find_Some_iff first_suffix_is_word)
+  by (auto simp add:  prefix_def find_Some_iff first_suffix_is_word)
 
 theorem find_prefix_index_is_0: "find_index (v\<cdot>u) v = Some 0"
-  unfolding find_index_def using find_prefix_is_word by (metis diff_self_eq_0 option.simps(5))
+  using find_prefix_is_word find_index.elims by (metis diff_self_eq_0 option.simps(5))
 
 lemma find_index_of_suffix_returns_first: 
   assumes "i \<le> (length w)"
@@ -309,144 +308,23 @@ qed
 subsection "Replacement"
 
 lemma replace_epsilon: "replace w \<epsilon> u = u\<cdot>w"
-  unfolding replace_def
   apply(auto simp add: option.case_eq_if)
-   apply (simp add: find_fac_epsilon find_index_def)
-  by (metis append_Nil drop0 find_prefix_index_is_0 option.sel take_eq_Nil2)
+   apply (metis find_fac.elims find_fac_epsilon option.distinct(1))
+  by (metis append_Nil cancel_comm_monoid_add_class.diff_cancel drop0 find_fac.simps find_fac_epsilon option.sel take0)
 
 lemma replace_id_if_not_contains: "\<not>contains w v \<Longrightarrow> replace w v u = w"
-  unfolding replace_def using contains_iff_find_index by fastforce
+  using contains_iff_find_index by fastforce
 
 theorem replace_factor: "contains w v \<Longrightarrow> \<exists>x y. (w= x\<cdot>v\<cdot>y \<and> replace w v u = x\<cdot>u\<cdot>y)"
-  unfolding replace_def find_index_def
   apply(auto simp add: option.case_eq_if prefix_def )
-   apply (metis contains_iff_find_fac option.distinct(1))
-  by (metis append.assoc append_eq_conv_conj find_returns_factor_at length_append)
+   apply (metis contains_iff_find_fac find_fac.simps option.distinct(1))
+  by (metis append.assoc append_eq_conv_conj find_fac.simps find_fac_returns_first length_append)
 
 theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. (length x') < (length x) \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))"
-  apply(auto simp add: contains_iff_find_index)
-  unfolding replace_def
-  apply(auto simp add: option.case_eq_if contains_iff_find_index)
-   apply (metis contains_iff_find_index option.distinct(1))
-proof -
-  assume a: "contains w v"
-  obtain aas :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" and aasa :: "nat \<Rightarrow> 'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
-    f2: "\<forall>as asa n. length (aas n asa as) = n \<and> aas n asa as \<cdot> asa \<cdot> aasa n asa as = as \<or> find_index as asa \<noteq> Some n"
-    by (metis (no_types) find_finds_factor)
-  obtain nn :: "'a list \<Rightarrow> 'a list \<Rightarrow> nat" where
-    f3: "find_index w v = Some (nn v w)"
-    using a by (meson contains_iff_find_index)
-  then have "drop (nn v w + length v) w = aasa (nn v w) v w"
-    using f2 by (metis append.assoc append_eq_conv_conj length_append)
-  then show "\<exists>as asa. take (the (find_index w v)) w \<cdot> u \<cdot> drop (the (find_index w v) + length v) w = as \<cdot> u \<cdot> asa \<and> w = as \<cdot> v \<cdot> asa \<and> (\<forall>asa. length asa < length as \<longrightarrow> (\<forall>as. w \<noteq> asa \<cdot> v \<cdot> as))"
-    using f3 f2 by (metis append_eq_conv_conj find_index_returns_first option.sel)
-qed
-
-lemma get_factor_factorizes:"v=(w[i;i+n]) \<and> i\<le>\<bar>w\<bar> \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i" 
-  apply(induct w)
-   apply(auto)
-  by (metis append_take_drop_id length_Cons length_take min.commute min_def)
-
-lemma factors_len_ge_w:"n > \<bar>w\<bar> \<Longrightarrow> factors w n = []" 
-  by auto
-lemma factors_len_eq_w: "n = \<bar>w\<bar> \<Longrightarrow> factors w n = [w]" 
-  by auto
-lemma factors_len_0: "set (factors w 0) = {\<epsilon>}" 
-  apply(induct w) by auto 
-
-lemma factors_set:"n\<le>\<bar>w\<bar> \<Longrightarrow> set (factors w n) = {v|v i. i\<in>{..\<bar>w\<bar>-n} \<and> v=(w[i;i+n])}" 
-  apply(induct n)
-   apply(auto)
-  by (metis Suc_diff_Suc less_Suc_eq_le less_imp_diff_less not_less_iff_gr_or_eq zero_less_diff)
-
-lemma factor_start_index:"v = w[i; i+\<bar>v\<bar>] \<Longrightarrow> i\<le>\<bar>w\<bar>-\<bar>v\<bar> \<or> v = \<epsilon>"
-  by (case_tac "i \<le> \<bar>w\<bar>-\<bar>v\<bar>", auto)
-
-
-lemma factor_iff_in_factors: "v \<in> set (factors w \<bar>v\<bar>) \<longleftrightarrow> factor v w" 
-proof 
-  assume "v \<in> set (factors w \<bar>v\<bar>)"
-  thus "factor v w" unfolding factor_iff by auto
-next assume a:"factor v w"
-  then have f1:"\<bar>v\<bar> \<le> \<bar>w\<bar>"  using sublist_length_le by blast
-  from a have "\<exists>i. v = w[i; i+\<bar>v\<bar>]" by (auto simp add: factor_iff)
-  then have "\<exists>i. v = w[i; i+\<bar>v\<bar>] \<and> i\<le>\<bar>w\<bar>-\<bar>v\<bar>" using factor_start_index by fastforce
-  then have " v \<in> {u|u i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> u=(w[i;i+\<bar>v\<bar>])}"  using atMost_iff by blast
-  thus " v \<in> set (factors w \<bar>v\<bar>)" using  factors_set f1 by blast
-qed
-
-lemma enum_factors_set:"n\<le>\<bar>w\<bar> \<Longrightarrow> set (enum_factors w n) = {(i,v)|v i. i\<in>{..\<bar>w\<bar>-n} \<and> v=(w[i;i+n])}" 
-  unfolding enum_factors_def 
-  by (auto simp add: in_set_enumerate_eq)
-
-
-lemma factor_iff_in_enum_factors:"\<exists>i. (i, v) \<in> set (enum_factors w \<bar>v\<bar>) \<longleftrightarrow> v \<in> set (factors w \<bar>v\<bar>)"
-  unfolding enum_factors_def 
-  apply(auto simp add:  enumerate_eq_zip in_set_impl_in_set_zip2 in_set_zipE )
-  by (metis (no_types, lifting) atLeastLessThan_upt in_set_impl_in_set_zip2 length_map list.set_map set_zip_rightD)
-
-lemma enum_factors_atmost_len: "(i, v) \<in> set (enum_factors w n) \<Longrightarrow> i\<le>\<bar>w\<bar> \<and> \<bar>v\<bar> \<le> \<bar>w\<bar>"
-  unfolding enum_factors_def
-  apply(induct n)
-   apply (auto simp add: in_set_enumerate_eq)
-  by (metis diff_is_0_eq' length_map length_upt less_Suc_eq_le list.size(3) map_nth nth_Cons_0 nth_append nth_map_upt zero_less_Suc)
-
-
-
-lemma factors_len: "n\<ge>1 \<Longrightarrow> \<bar>(factors w n)\<bar> \<le> \<bar>w\<bar>" 
-  apply(induct w) by (auto)
-
-lemma enum_factors_len: "\<bar>(factors w n)\<bar> = \<bar>(enum_factors w n)\<bar>"
-  by (simp add: enum_factors_def)
-
-lemma enum_factors_factorization:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>) \<Longrightarrow> \<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i"
-proof -
-  assume a:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
-  then have f1:"i\<le>\<bar>w\<bar> \<and> \<bar>v\<bar> \<le> \<bar>w\<bar>" by (simp add: enum_factors_atmost_len)
-  from a have "(i, v) \<in> {(i,v)|v i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>])}" using enum_factors_set f1 by blast
-  then show ?thesis  using f1 get_factor_factorizes by blast
-qed
-
-lemma enum_factors_factorization2:"(i, v) \<notin> set(enum_factors w \<bar>v\<bar>) \<Longrightarrow> \<not>(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i)" 
-proof (case_tac "\<bar>v\<bar> \<le> \<bar>w\<bar>")
-  assume b:"\<not>(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
-  assume a:"\<bar>v\<bar> \<le> \<bar>w\<bar>"
-  then have "\<not> (i, v) \<in> {(i,v)|v i. i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>])}" using enum_factors_set b a by blast
-  then have "\<forall>i' v'.  i\<in>{..\<bar>w\<bar>-\<bar>v\<bar>} \<and> v=(w[i;i+\<bar>v\<bar>]) \<longrightarrow> i'\<noteq>i \<or> v'\<noteq>v" using enum_factors_set a by blast
-  then show "\<nexists>x y. w = x \<cdot> v \<cdot> y \<and> \<bar>x\<bar> = i" by auto
-next 
-  assume b:"\<not>(i, v) \<in> set(enum_factors w \<bar>v\<bar>)"
-  assume a:"\<not>\<bar>v\<bar> \<le> \<bar>w\<bar>"
-  then show "\<nexists>x y. w = x \<cdot> v \<cdot> y \<and> \<bar>x\<bar> = i" by auto
-qed
-
-lemma enum_factors_iff_factorization:"(i, v) \<in> set(enum_factors w \<bar>v\<bar>) \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = i)"
-  by (meson enum_factors_factorization enum_factors_factorization2)
-
-
-lemma enum_factors_nth: "i<\<bar>(enum_factors w n)\<bar> \<Longrightarrow> fst ((enum_factors w n) ! i) = i" 
-  by (metis add_0 enum_factors_def enum_factors_len fstI nth_enumerate_eq)
-
-
-lemma factor_index_some_iff: "factor_index w v = Some n \<Longrightarrow> find (\<lambda>(i,v'). v'=v) (enum_factors w \<bar>v\<bar>) = Some (n, v)"
-  apply(auto)
-  by (metis (mono_tags, lifting) find_Some_iff snd_conv split_beta)
-
-
-lemma factor_index_first:"factor_index w v = Some n \<Longrightarrow> (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> n' = \<bar>x'\<bar>))"
-proof -
-  assume "factor_index w v = Some n"
-  then have "find (\<lambda>(i,v'). v'=v) (enum_factors w \<bar>v\<bar>) = Some (n, v)" using factor_index_some_iff by blast
-  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! k) \<and> (n, v) = (enum_factors w \<bar>v\<bar>) ! k \<and> (\<forall>j<k. \<not> (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! j)))" using find_Some_iff  by (metis (no_types, lifting))
-  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (n, v) = (enum_factors w \<bar>v\<bar>) ! k \<and> (\<forall>j<n. \<not> (\<lambda>(i,v'). v'=v) ((enum_factors w \<bar>v\<bar>) ! j)))" by (metis  enum_factors_nth fst_conv)
-  then have "(\<exists>k<\<bar>(enum_factors w \<bar>v\<bar>)\<bar>. (n,v) \<in> set (enum_factors w \<bar>v\<bar>) \<and> (\<forall>j<n.  \<not> (j,v) \<in> set (enum_factors w \<bar>v\<bar>)))"  by (metis (mono_tags, lifting) case_prodI enum_factors_nth fst_conv in_set_conv_nth)
-  then have "(\<forall>j<n.  \<not> (j,v) \<in> set (enum_factors w \<bar>v\<bar>))" by auto
-  thus ?thesis  using enum_factors_iff_factorization sublist_length_le by blast
-qed
-
-
-
-
+  apply(auto simp add: option.case_eq_if find_returns_factor_at)
+  apply (metis contains_iff_find_fac find_fac.simps option.distinct(1))
+  using replace.elims find_fac.elims find_fac_returns_first  append_eq_conv_conj length_append 
+  by (smt (verit, ccfv_threshold) append.assoc) (* todo *)
 
 
 

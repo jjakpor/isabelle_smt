@@ -61,8 +61,8 @@ fun re_star:: "'a::linorder regex \<Rightarrow> 'a regex" where
 lemma re_star_correct:"(lang (re_star r)) = (lang (Star r))"
   by (cases r rule: re_star.cases) (auto simp add: star_of_epsilon star_of_empty)
 
-definition re_plus::"'a::linorder regex \<Rightarrow> 'a regex" where 
-  "re_plus r \<equiv> re_concat r (re_star r)"
+fun re_plus::"'a::linorder regex \<Rightarrow> 'a regex" where 
+  "re_plus r = re_concat r (re_star r)"
 
 fun re_inter:: "'a::linorder regex \<Rightarrow> 'a::linorder regex \<Rightarrow> 'a regex" where
   "re_inter None r = None"|
@@ -114,7 +114,7 @@ lemma re_loop_iff1:
   apply (metis empty_iff lang.simps(1) le_Suc_eq re_loop.elims)
   using antisym not_less_eq_eq by fastforce
 
-lemma re_loop_iff2:"a > b \<Longrightarrow> re_loop r a b = None"
+lemma re_loop_None_if:"a > b \<Longrightarrow> re_loop r a b = None"
   by(cases \<open>(r, a, b)\<close> rule: re_loop.cases) auto
 
 (* A language is nullable if it accepts the empty word*)
@@ -248,8 +248,5 @@ lemma contains_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rde
 theorem derivative_correctness: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
   by (auto simp add: contains_derivw_nullable derivw_nullable_contains)
 
-(* Define containment a nullability of derivative *)
-definition re_contains:: "'a::linorder word \<Rightarrow> 'a regex \<Rightarrow> bool" where 
-  "re_contains w r \<equiv> nullable (rderivw w r)"
 
 end
