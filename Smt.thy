@@ -55,14 +55,22 @@ locale strings =
     and str_prefix: "v \<sqsubseteq> w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)" 
     and str_suffix: "v\<sqsupseteq>w \<longleftrightarrow> (\<exists>x. w = x\<cdot>v)" 
     and str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
-    (* This is stated in SMT-LIB but invalid
+
+(* This is stated in SMT-LIB but invalid
 str_indexof1: "str_contains v w \<Longrightarrow> \<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>))" and
 str_indexof2: "\<not> str_contains v w \<Longrightarrow> str_indexof w v i = -1" and
+
+- if i\<le>\<bar>w\<bar> no such n exists 
+  - Example: (indexof "ab" \<epsilon> 3 = n) but no n wa and words x y satisfy "ab" = x\<cdot>\<epsilon>\<cdot>y \<and> \<bar>x\<bar>=n \<and> n\<ge>3
+- if (str_contains v w) but not  str_contains (str_substr w i \<bar>w\<bar>) v, then no such n exists
+  - Example: (indexof "ab" "a" 1 = n) but no n and words x y satisfy "ab" = x\<cdot>"a"\<cdot>y \<and> \<bar>x\<bar> = n \<and> n\<ge>1
+
 *)
-    and str_indexof1: "i\<ge>0 \<and> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> 
+    and str_indexof1: "i\<ge>0 \<and> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> 
                          \<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> 
-                           (\<forall>n'. n' < n \<longrightarrow> (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n = \<bar>x'\<bar>))" 
-    and str_indexof2: "i<0 \<or> \<not> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i = -1" 
+                           (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n' = \<bar>x'\<bar>))" 
+    and str_indexof2: "i<0 \<or> i>\<bar>w\<bar> \<or> \<not> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i = -1" 
+
     and replace1: "str_contains w v \<Longrightarrow> 
                      \<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> 
                        (\<forall> x'. \<bar>x'\<bar> < \<bar>x\<bar> \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))" 
