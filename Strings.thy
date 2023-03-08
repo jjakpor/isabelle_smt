@@ -58,16 +58,19 @@ abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
   "str_contains \<equiv> Words.contains"
 
 abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof w v i \<equiv> 
-     if i \<ge> 0 \<and> i\<le>\<bar>w\<bar> then 
-       (case factor_index (drop (nat i) w) v of 
-           Some r \<Rightarrow> (int r+i) 
-         | option.None \<Rightarrow> -1
-       ) 
-     else (-1)"
+  "str_indexof w v i \<equiv> undefined"
 
 abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
-  "str_replace \<equiv> replace"
+  "str_replace \<equiv> undefined"
+
+abbreviation str_replace_all:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
+  "str_replace_all \<equiv> undefined"
+
+abbreviation str_replace_re:: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
+  "str_replace_re \<equiv> undefined"
+
+abbreviation str_replace_re_all:: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
+  "str_replace_re_all \<equiv> undefined"
 
 abbreviation str_in_re:: "uc_word \<Rightarrow> uc_regex \<Rightarrow> bool" where 
   "str_in_re w r \<equiv> nullable (rderivw w r)"
