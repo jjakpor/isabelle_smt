@@ -127,6 +127,8 @@ subsection "Model Proofs"
 text "We shows that our interpretation of the functions satisfy all conditions stated by the SMT-LIB theory 
 of strings, which thus proofs it to be equivalent to the standard model of the theory."
 
+abbreviation smallest where
+  "smallest K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -314,8 +316,43 @@ theorem re_union: "lang (re_union r e) = {w|w. w \<in> lang r \<or> w \<in> lang
 theorem re_inter: "lang (re_inter r1 r2) = {w|w. w\<in> lang r1 \<and> w \<in> lang r2}" 
   by (auto simp add:  re_inter_correct)
 
-theorem re_star: "lang (re_star r) = k \<Longrightarrow> \<epsilon> \<in> k \<and> {x\<cdot>y|x y. x \<in> lang r \<and> y \<in> k} \<subseteq> k" 
-  using Regular.concat_def concat_star_subset re_star_correct by fastforce
+lemma Star_smallest:
+  assumes "w \<in> (pow (lang r) n)"
+  assumes "\<epsilon> \<in> K'"
+  assumes "{x \<cdot> y |x y. x \<in> lang r \<and> y \<in> K'} \<subseteq> K'"
+  shows "w \<in> K'"
+  using assms
+proof (induction n arbitrary: w)
+  case 0
+  then show ?case
+    by (simp add: star_all_pows star_of_empty)
+next
+  case (Suc n)
+  from Suc(2) have "\<exists>u v. w = u \<cdot> v \<and> u \<in> (lang r) \<and> v \<in> pow (lang r) n"
+    by (simp add: Regular.concat_def)
+  then obtain u v where u_v_p: "w = u \<cdot> v" "u \<in> lang r" "v \<in> pow (lang r) n"
+    by auto
+  then have "v \<in> K'"
+    using Suc(1)[of v] Suc(3) Suc(4) by auto
+  then show ?case
+    using u_v_p Suc by auto
+qed
+
+theorem re_star: "smallest (lang (Star r)) (\<lambda>K. \<epsilon> \<in> K \<and> {x\<cdot>y | x y. x \<in> lang r \<and> y \<in> K} \<subseteq> K)"
+proof -
+  have "\<epsilon> \<in> lang (r\<^sup>\<star>)"
+    by simp
+  moreover
+  have "{x \<cdot> y |x y. x \<in> lang r \<and> y \<in> lang (r\<^sup>\<star>)} \<subseteq> lang (r\<^sup>\<star>)"
+    by (auto simp add: concat_containment re_star_correct star_subsumes)
+  moreover
+  have "(\<forall>K'. \<epsilon> \<in> K' \<and> {x \<cdot> y |x y. x \<in> lang r \<and> y \<in> K'} \<subseteq> K' \<longrightarrow> lang (r\<^sup>\<star>) \<subseteq> K')"
+    using Star_smallest by (auto simp add: star_def)
+  ultimately
+  show ?thesis
+    by auto
+qed
+
   
 theorem re_plus: "lang (re_plus r) = lang (re_concat r (re_star r))"  
  by auto
