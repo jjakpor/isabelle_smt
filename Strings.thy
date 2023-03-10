@@ -58,7 +58,8 @@ abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
   "str_contains \<equiv> Words.contains"
 
 abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof w v i \<equiv> undefined"
+  "str_indexof w v i \<equiv> if i\<ge>0 then (case index w v (nat i) of Some a \<Rightarrow> (int a) | option.None \<Rightarrow> -1) else -1"
+
 
 abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
   "str_replace \<equiv> undefined"
@@ -127,8 +128,11 @@ subsection "Model Proofs"
 text "We shows that our interpretation of the functions satisfy all conditions stated by the SMT-LIB theory 
 of strings, which thus proofs it to be equivalent to the standard model of the theory."
 
-abbreviation smallest where
-  "smallest K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
+abbreviation smallest_set where
+  "smallest_set K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
+
+abbreviation smallest_int where
+  "smallest_int n P \<equiv> P n \<and> (\<forall>n'. P n' \<longrightarrow> n \<le> n')"
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -250,16 +254,17 @@ To be consistent, we need (str_contains (str_substr w i \<bar>w\<bar>) v)  insta
 If either of these premises is not met, or i<0, the the function must evaluate to -1.
 "
 
-(* Two helpful lemmas *)
+
+
 lemma indexof_if_not_contains:"\<not> (str_contains (str_substr w i \<bar>w\<bar>) v) \<Longrightarrow> str_indexof w v i = -1" 
   sorry
 lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i \<ge> 0" 
   sorry
 
+
 theorem str_indexof1: 
   assumes "i\<ge>0" and "i\<le>\<bar>w\<bar>" and "str_contains (str_substr w i \<bar>w\<bar>) v"
-  shows "\<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> 
-          (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n' = \<bar>x'\<bar>))" 
+  shows "\<exists>n. str_indexof w v i = n \<and> smallest_int n (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>))" 
   sorry
 
 theorem str_indexof2: 

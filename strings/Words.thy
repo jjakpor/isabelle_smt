@@ -44,11 +44,18 @@ lemma contains_iff_factor:"contains w v \<longleftrightarrow> factor v w"
    apply(simp)
   by (simp add: sublist_Cons_right)
 
+function index:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat  \<Rightarrow> nat option" where
+  "i\<le> \<bar>w\<bar>-\<bar>v\<bar> \<Longrightarrow> index w v i = (if (w[i;i+\<bar>v\<bar>]) = v then Some i else index w v (i+1))"|
+  "i>\<bar>w\<bar>-\<bar>v\<bar> \<Longrightarrow> index w v i = None"
+  by (atomize_elim, auto)
+termination 
+  apply (relation "measure (\<lambda>(w,v,i). \<bar>w\<bar> + 1 - i)")
+  by (auto)
 
+(* We  Need this for value *)
+lemma [code]:"index w v i = (if i \<le> \<bar>w\<bar>-\<bar>v\<bar> then (if (w[i;i+\<bar>v\<bar>]) = v then Some i else index w v (i+1)) else None)" by auto
 
-
-
-
+value "index ''abcab'' ''ab'' 1"
 
 
 subsection "Factorization"
