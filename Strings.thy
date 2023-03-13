@@ -61,7 +61,7 @@ fun str_indexof_0:: "uc_word \<Rightarrow> uc_word \<Rightarrow> nat" where
   "str_indexof_0 (c#w) v = (if prefix v (c#w) then 0 else Suc (str_indexof_0 w v))"
 | "str_indexof_0 [] v = 0"
 
-definition str_indexof_nat:: "uc_word \<Rightarrow> uc_word \<Rightarrow> nat \<Rightarrow> nat" where 
+fun str_indexof_nat:: "uc_word \<Rightarrow> uc_word \<Rightarrow> nat \<Rightarrow> nat" where 
   "str_indexof_nat w v n = n + str_indexof_0 (drop n w) v"
 
 fun str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
@@ -386,7 +386,7 @@ proof -
   have "smallest_int (i + str_indexof_0 (drop i w)  v) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x))" 
     by auto
   then show ?thesis 
-    unfolding str_indexof_nat_def by simp
+    by simp
 qed
 
 theorem str_indexof1:
