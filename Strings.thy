@@ -57,15 +57,12 @@ abbreviation str_suffixof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
 abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" where 
   "str_contains \<equiv> Words.contains"
 
-fun str_indexof_0:: "uc_word \<Rightarrow> uc_word \<Rightarrow> nat" where 
-  "str_indexof_0 (c#w) v = (if prefix v (c#w) then 0 else Suc (str_indexof_0 w v))"
-| "str_indexof_0 [] v = 0"
 
-fun str_indexof_nat:: "uc_word \<Rightarrow> uc_word \<Rightarrow> nat \<Rightarrow> nat" where 
-  "str_indexof_nat w v n = n + str_indexof_0 (drop n w) v"
+(*fun str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
+  "str_indexof w v i = (if i \<ge> 0 \<and> (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (str_indexof_nat w v (Int.nat i)) else -1)"*)
 
-fun str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof w v i = (if i \<ge> 0 \<and> (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (str_indexof_nat w v (Int.nat i)) else -1)"
+abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
+  "str_indexof w v i \<equiv> (if i\<ge>0 \<and>  (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (indexof_nat w v (Int.nat i)) else -1)"
 
 abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
   "str_replace \<equiv> undefined"
@@ -139,6 +136,9 @@ abbreviation smallest_set where
 
 abbreviation smallest_int where
   "smallest_int n P \<equiv> P n \<and> (\<forall>n'. P n' \<longrightarrow> n \<le> n')"
+
+abbreviation shortest_word where
+  "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> w \<le> w')"
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -260,135 +260,6 @@ To be consistent, we need (str_contains (str_substr w i \<bar>w\<bar>) v)  insta
 If either of these premises is not met, or i<0, the the function must evaluate to -1.
 "
 
-
-
-lemma indexof_if_not_contains:"\<not> (str_contains (str_substr w i \<bar>w\<bar>) v) \<Longrightarrow> str_indexof w v i = -1" 
-  by auto
-
-lemma indexof_if_not_contains''':"\<not> (str_contains (str_substr w i \<bar>w\<bar>) v) \<Longrightarrow> str_indexof w v i = -1"
-  by simp 
-
-lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i \<ge> 0" 
-  by auto
-
-lemma indexof_if_contains''': "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i \<ge> 0"
-  by simp
-
-theorem str_indexof_01:
-  assumes "sublist v w"
-  shows "smallest_int (str_indexof_0 w v) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = length x))" 
-  using assms
-proof (induction w)
-  case Nil
-  then show ?case
-    by auto
-next
-  case (Cons a w)
-  then have split: "prefix v (a # w) \<or> (\<not>prefix v (a # w) \<and> sublist v w)"
-    by (metis sublist_Cons_right)
-  then have "(\<exists>x y. a # w = str_concat x (str_concat v y) \<and> str_indexof_0 (a # w) v = length x)"
-  proof 
-    assume "str_prefixof v (a # w)"
-    then have "str_indexof_0 (a # w) v = 0"
-      by auto
-    moreover
-    have "\<exists>y. a # w = (str_concat v y)"
-      using \<open>str_prefixof v (a # w)\<close> prefix_def by auto
-    ultimately
-    have "(\<exists>y. a # w = (str_concat v y) \<and> str_indexof_0 (a # w) v = 0)"
-      by auto
-    then show "(\<exists>x y. a # w = str_concat x (str_concat v y) \<and> str_indexof_0 (a # w) v = length x)"
-      by auto
-  next
-    assume "\<not> str_prefixof v (a # w) \<and> sublist v w"
-    then have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (str_indexof_0 w v) = length x)"
-      using Cons(1) by auto
-    then show "(\<exists>x y. a # w = x\<cdot> (v\<cdot> y) \<and> str_indexof_0 (a # w) v = length x)"
-      by (metis \<open>\<not> str_prefixof v (a # w) \<and> sublist v w\<close> add.right_neutral add_Suc_right append_Cons list.size(4) str_indexof_0.simps(1))
-  qed
-  moreover
-  have "(\<forall>n'. (\<exists>x y. a # w = x\<cdot> (v\<cdot> y) \<and> n' = length x) \<longrightarrow> str_indexof_0 (a # w) v \<le> n')"
-  proof (rule, rule)
-    fix n'
-    assume "\<exists>x y. (a # w = x\<cdot> (v\<cdot> y) \<and> n' = length x)"
-    then obtain x y where x_y_p: "a # w = x\<cdot>(v\<cdot> y) \<and> n' = length x"
-      by auto
-    from split show "str_indexof_0 (a # w) v \<le> n'"
-    proof 
-      assume "str_prefixof v (a # w)"
-      show "str_indexof_0 (a # w) v \<le> n'"
-        by (simp add: \<open>str_prefixof v (a # w)\<close>)
-    next
-      assume a: "\<not> str_prefixof v (a # w) \<and> sublist v w "
-      have n'_gr_0: "n' > 0"
-        using \<open>a # w = str_concat x (str_concat v y) \<and> n' = length x\<close> a by force
-      from a have "str_indexof_0 (a # w) v = Suc (str_indexof_0 w v)"
-        by auto
-      from a have "smallest_int (str_indexof_0 w v) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = length x))"
-        using Cons by auto
-      then have "(\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n' = length x) \<longrightarrow> (str_indexof_0 w v) \<le> n')"
-        by auto
-      then have "(\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> Suc n' = length (a#x)) \<longrightarrow> str_indexof_0 (a # w) v \<le> Suc n')"
-        by auto
-      then show "str_indexof_0 (a # w) v \<le> n'"
-        by (smt (verit, ccfv_SIG) n'_gr_0 x_y_p a append_eq_Cons_conv gr0_implies_Suc prefixI)
-    qed
-  qed
-  ultimately
-  show ?case 
-    by auto
-qed
-
-
-theorem str_indexof_nat1: 
-  assumes "i\<le> length w" and "sublist v (drop i w)"
-  shows "smallest_int (str_indexof_nat w v i) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x))" 
-proof -
-  have sm: "smallest_int (str_indexof_0 (drop i w) v) (\<lambda>n. (\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> n = length x))"
-    using assms str_indexof_01 by metis
-  then have "\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> (str_indexof_0 (drop i w) v) = length x"
-    by auto
-  then obtain x y where x_y_p: "(drop i w) = x\<cdot>v\<cdot>y \<and> (str_indexof_0 (drop i w) v) = length x"
-    by auto
-  define x' where "x' = take i w \<cdot> x"
-  {
-    have a: "w = x'\<cdot>v\<cdot>y"
-      by (metis x_y_p append_assoc append_take_drop_id x'_def)
-    moreover
-    have b: "i \<le> (i + str_indexof_0 (drop i w) v)"
-      by auto
-    moreover
-    have c: "i + str_indexof_0 (drop i w) v = length x'"
-      using assms(1) x'_def x_y_p by fastforce
-    ultimately
-    have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> (i + str_indexof_0 (drop i w) v) \<and> (i + str_indexof_0 (drop i w) v) = length x)"
-      by metis
-  }
-  moreover
-  have "\<forall>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x) \<longrightarrow> (i + str_indexof_0 (drop i w) v) \<le> n"
-  proof (rule, rule)
-    fix n
-    assume "(\<exists>x'' y''. w = x''\<cdot>v\<cdot>y'' \<and> i \<le> n \<and> n = length x'')"
-    then obtain x'' y'' where x''_y''_p:
-      "w = x''\<cdot>v\<cdot>y''"
-      "i \<le> n"
-      "n = length x''"
-      by auto
-    define x''' where "x''' = drop i x''"
-    have drop_w_split: "(drop i w) = drop i x'' \<cdot> v\<cdot>y''"
-      using x''_y''_p by force
-    have "\<forall>n. (\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> n = length x) \<longrightarrow> str_indexof_0 (drop i w) v \<le> n"
-      using sm by auto
-    then show "(i + str_indexof_0 (drop i w) v) \<le> n"
-      using drop_w_split x''_y''_p(2) x''_y''_p(3) by fastforce
-  qed
-  ultimately
-  have "smallest_int (i + str_indexof_0 (drop i w)  v) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x))" 
-    by auto
-  then show ?thesis 
-    by simp
-qed
-
 theorem str_indexof1:
   assumes "i\<ge>0" and "i\<le>\<bar>w\<bar>" and "str_contains (str_substr w i \<bar>w\<bar>) v"
   shows "\<exists>n. str_indexof w v i = n \<and> smallest_int n (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>))" 
@@ -400,10 +271,10 @@ proof -
     by (smt (verit, best) assms(3) contains_iff_factor dual_order.refl factor.elims(1) 
         factor_suffix nat_add_distrib nat_int sublist_Nil_left sublist_Nil_right trans_le_add2)
   ultimately
-  have "smallest_int (str_indexof_nat w v (Int.nat i)) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (Int.nat i) \<le> n \<and> n = length x))"
+  have "smallest_int (indexof_nat w v (Int.nat i)) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (Int.nat i) \<le> n \<and> n = length x))"
     using str_indexof_nat1[of "Int.nat i" w v] by auto
   then show ?thesis
-    by (metis assms nat_int nat_le_iff str_indexof.elims)
+    by (metis assms nat_int nat_le_iff)
 qed
 
 theorem str_indexof2: 
@@ -419,7 +290,7 @@ proof -
   {
     assume "\<not> str_contains (str_substr w i \<bar>w\<bar>) v" 
     then have ?thesis
-      using assms indexof_if_not_contains''' by blast
+      using assms indexof_if_not_contains''' by presburger
   }
   moreover
   {
@@ -433,7 +304,7 @@ qed
 
 theorem str_replace1:
   assumes "str_contains w v"
-  shows "\<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. \<bar>x'\<bar> < \<bar>x\<bar> \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))"
+  shows "\<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> shortest_word x (\<lambda>y. w = x\<cdot>v\<cdot>y)"
   sorry
 
 theorem str_replace2: 
