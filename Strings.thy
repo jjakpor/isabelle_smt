@@ -65,7 +65,7 @@ abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Ri
   "str_indexof w v i \<equiv> (if i\<ge>0 \<and>  (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (indexof_nat w v (Int.nat i)) else -1)"
 
 abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
-  "str_replace \<equiv> undefined"
+  "str_replace \<equiv> replace"
 
 abbreviation str_replace_all:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
   "str_replace_all \<equiv> undefined"
@@ -138,7 +138,7 @@ abbreviation smallest_int where
   "smallest_int n P \<equiv> P n \<and> (\<forall>n'. P n' \<longrightarrow> n \<le> n')"
 
 abbreviation shortest_word where
-  "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> w \<le> w')"
+  "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> \<bar>w\<bar> \<le> \<bar>w'\<bar>)"
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -304,13 +304,16 @@ qed
 
 theorem str_replace1:
   assumes "str_contains w v"
-  shows "\<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> shortest_word x (\<lambda>y. w = x\<cdot>v\<cdot>y)"
-  sorry
+  shows "\<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. (\<exists>y'. w=x'\<cdot>v\<cdot>y') \<longrightarrow> \<bar>x\<bar> \<le> \<bar>x'\<bar>)"
+  using replace_first_factor 
+  by (metis assms of_nat_mono)
+
 
 theorem str_replace2: 
   assumes "\<not> str_contains w v"
   shows "str_replace w v u = w" 
-  sorry
+  sledgehammer
+  using assms replace_id_if_not_contains by blast
 
 (* TODO: Add replace_all, replace_re, replace_all_re! *)
 

@@ -52,9 +52,14 @@ fun indexof_nat:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat \<Rightarrow>
   "indexof_nat w v n = n + indexof_0 (drop n w) v"
 
 fun indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat \<Rightarrow> nat option" where 
-  "indexof w v i = (if i \<ge> 0 \<and> (factor (w[i;\<bar>w\<bar>]) v) \<and> i\<le>\<bar>w\<bar> then Some (indexof_nat w v i) else None)"
+  "indexof w v i = (if (factor v  (w[i;\<bar>w\<bar>])) \<and> i\<le>\<bar>w\<bar> then Some (indexof_nat w v i) else None)"
 
 
+fun replace:: "'a word \<Rightarrow> 'a word \<Rightarrow> 'a word \<Rightarrow> 'a word" where
+  "replace w v u = (case indexof w v 0 of Some i \<Rightarrow> (take i w)\<cdot>u\<cdot>(drop (i+(length v)) w) | None => w)"
+
+
+  
 
 subsection "Factorization"
 
@@ -127,18 +132,20 @@ lemma epsilon_contains_epsilon[simp]: "contains \<epsilon> v \<Longrightarrow> v
 
 subsection "Searching and Replacing Factors" 
 
-lemma indexof_if_not_contains:"\<not> (factor (w[i; \<bar>w\<bar>]) v) \<Longrightarrow> indexof w v i = None" 
-  by auto
-
-lemma indexof_if_not_contains''':"\<not> (factor (w[i; \<bar>w\<bar>]) v) \<Longrightarrow> indexof w v i = None"
-  by simp 
-
-lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor (w[i; \<bar>w\<bar>]) v \<Longrightarrow> \<exists>r. indexof w v i = Some r" 
-  by auto
-
-lemma indexof_if_contains''': "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor (w[i; \<bar>w\<bar>]) v \<Longrightarrow> \<exists>r. indexof w v i =  Some r"
+lemma indexof_if_not_contains:"\<not> (factor v (w[i; \<bar>w\<bar>])) \<Longrightarrow> indexof w v i = None" 
   by simp
 
+lemma indexof_if_not_contains''':"\<not> (factor v  (w[i; \<bar>w\<bar>])) \<Longrightarrow> indexof w v i = None"
+  by simp 
+
+lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor v (w[i; \<bar>w\<bar>]) \<Longrightarrow> \<exists>r. indexof w v i = Some r" 
+  by auto
+
+lemma indexof_if_contains''': "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor v (w[i; \<bar>w\<bar>]) \<Longrightarrow> \<exists>r. indexof w v i =  Some r"
+  by simp
+
+lemma indexof_Some_iff: "indexof w v i = Some r \<longleftrightarrow> (factor v  (w[i;\<bar>w\<bar>])) \<and> i\<le>\<bar>w\<bar> \<and> r = (indexof_nat w v i)"
+  by(auto split: if_splits)
 
 theorem indexof_01:
   assumes "factor v w"
@@ -256,6 +263,37 @@ proof -
    by simp
 qed
 
+lemma indexof_Some_iff_factor: "\<exists>r. indexof w v 0 = Some r \<longleftrightarrow> factor v w"
+  by(auto split: if_splits)
+
+
+lemma replace_epsilon: "replace w \<epsilon> u = u\<cdot>w"
+  apply(auto simp add: option.case_eq_if)
+  by (metis append_self_conv2 append_take_drop_id indexof_0.elims prefix_bot.bot_least take_eq_Nil2)
+
+lemma replace_id_if_not_contains: "\<not>contains w v \<Longrightarrow> replace w v u = w"
+  using contains_iff_factor by auto
+
+
+theorem replace_factor: "contains w v \<Longrightarrow> \<exists>x y. (w= x\<cdot>v\<cdot>y \<and> replace w v u = x\<cdot>u\<cdot>y)"
+  apply(auto simp add: option.case_eq_if prefix_def )  
+   apply (metis append.assoc append_eq_conv_conj factor.elims(3) indexof_01 length_append)
+  by (simp add: contains_iff_factor)
+   
+  
+theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. (\<exists>y'. w=x'\<cdot>v\<cdot>y') \<longrightarrow> \<bar>x\<bar> \<le> \<bar>x'\<bar>)"
+proof -
+  assume "contains w v"
+  then have "factor v w" using contains_iff_fac by auto
+  then have "\<exists>n. indexof_nat w v 0 = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> 0 \<le> n \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> 0 \<le> n' \<and> n' = \<bar>x\<bar>)  \<longrightarrow> n \<le> n')"
+    by (metis bot_nat_0.extremum drop0 str_indexof_nat1) 
+  then obtain n where "indexof_nat w v 0 = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> 0 \<le> n' \<and> n' = \<bar>x\<bar>)  \<longrightarrow> n \<le> n')" by blast
+  then have "replace w v u = (take n w)\<cdot>u\<cdot>(drop (n+\<bar>v\<bar>) w) \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> 0 \<le> n' \<and> n' = \<bar>x'\<bar>)  \<longrightarrow> n \<le> n')" by auto
+  then have "\<exists>x y. replace w v u = x\<cdot>u\<cdot>y \<and> n = \<bar>x\<bar> \<and>  w = x\<cdot>v\<cdot>y \<and> (\<forall>n'. (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> 0 \<le> n' \<and> n' = \<bar>x'\<bar>)  \<longrightarrow> n \<le> n')"
+    by (metis append.assoc append_eq_conv_conj length_append)
+  then have "\<exists>x y. replace w v u = x\<cdot>u\<cdot>y \<and>  w = x\<cdot>v\<cdot>y \<and> (\<forall>n'. (\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> 0 \<le> n' \<and> n' = \<bar>x'\<bar>)  \<longrightarrow> \<bar>x\<bar> \<le> n')" by metis 
+  then show ?thesis by blast
+qed
 
 
 
