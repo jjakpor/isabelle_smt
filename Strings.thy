@@ -183,11 +183,11 @@ lemma length_int_nat_sub_min:
 lemma of_nat_nat_inv: "x \<ge> 0 \<Longrightarrow> of_nat (nat x) = x" 
   by auto
 
+
 subsubsection "Substrings (str.at, str.substr)"
 
 theorem str_at:"str_at w n = str_substr w n 1" 
   by (simp split: if_splits add: diff_nat_eq_if)
-
 
 lemma substr_factor_equal:
   assumes "0 \<le> m"
@@ -195,7 +195,6 @@ lemma substr_factor_equal:
     and "0 < n"
   shows "str_substr w m n = (w[nat m; nat m + nat n])"
   using assms diff_nat_eq_if by auto
-
 
 theorem str_substr1:
   assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
@@ -229,6 +228,7 @@ proof -
   then show ?thesis  using assm by fastforce
 qed
 
+
 subsubsection "Factors (str.prefixof, str.suffixof, str.contains)"
 
 theorem str_prefix: "str_prefixof v w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)"   by (simp add: prefix_def)
@@ -238,7 +238,6 @@ theorem str_suffix: "str_suffixof v w \<longleftrightarrow> (\<exists>x. w = x\<
 theorem str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
   by (auto simp add: contains_iff_factor sublist_def)
   
-
 
 subsubsection "Searching and replacing (str.indexof, str.replace variants)"
 
@@ -317,6 +316,7 @@ theorem str_replace2:
 
 (* TODO: Add replace_all, replace_re, replace_all_re! *)
 
+
 subsubsection "Regular languages"
 
 text "We represent regular languages using regular expression accompanied by a lang function that
@@ -324,13 +324,12 @@ maps expression to languages."
 
 text "We first who that this lang operator maps into the powerset of all unicode strings"
 
-theorem re_lang_unicode:"range (lang::(uc_char regex \<Rightarrow> uc_char word set)) \<subseteq> Pow UC"
-  apply(auto)
-  using UC_def by blast
+theorem re_lang_unicode: "range (lang::(uc_char regex \<Rightarrow> uc_char word set)) \<subseteq> Pow UC"
+  using UC_def by force
 
 theorem str_to_re: "lang (str_to_re w) = {w}" by auto
 
-theorem str_in_re:"str_in_re w R \<longleftrightarrow> w \<in> (lang R)" 
+theorem str_in_re: "str_in_re w R \<longleftrightarrow> w \<in> (lang R)" 
   by (auto simp add: derivw_nullable_contains contains_derivw_nullable)
   
 
@@ -340,10 +339,8 @@ theorem re_none: "lang re_none = {}" by auto
 
 theorem re_allchar: "lang re_allchar = {w. \<bar>w\<bar> = 1}" by auto
 
-theorem re_all: "lang re_all = UC" 
-  apply(auto)
-  using UC_def apply blast
-  by (metis One_nat_def singleton_set star_of_singletons_is_univ)
+theorem re_all: "lang re_all = UC"
+  using UC_def star_any_is_univ by auto
 
 theorem re_concat: "lang (re_concat r e) = {x\<cdot>y|x y. x \<in> lang r \<and> y \<in> lang e}" 
   by (simp add: Regular.concat_def re_concat_correct)
@@ -394,12 +391,11 @@ proof -
     by auto
 qed
 
-  
 theorem re_plus: "lang (re_plus r) = lang (re_concat r (re_star r))"  
- by auto
+  by auto
 
 theorem re_range1: "\<bar>l\<bar> = 1 \<and> \<bar>u\<bar> = 1 \<Longrightarrow> lang (re_range l u) = {v| v. l \<le> v \<and>  v\<le>u \<and> \<bar>v\<bar> = 1}" 
- apply(cases \<open>(l, u)\<close> rule:re_range.cases)
+ apply(cases \<open>(l, u)\<close> rule: re_range.cases)
       apply (auto split: if_splits)
    apply (metis (no_types, lifting) Cons_less_Cons length_0_conv length_Suc_conv linorder_not_le)
   by (meson Cons_le_Cons dual_order.trans)
@@ -413,21 +409,18 @@ theorem re_comp: "lang (re_comp r) = UNIV - (lang r)"
 theorem re_diff: "lang (re_diff r1 r2) = lang r1 - lang r2" 
   by (simp add: re_diff_correct)
 
-
 theorem re_pow1: "lang (re_pow 0 r) = {\<epsilon>}" 
   by auto
 
 theorem re_pow2: "\<forall>n. re_pow (Suc n) r =  re_concat r (re_pow n r)" 
   by simp
 
-theorem  re_loop1: 
- assumes "a \<le> b"
+theorem re_loop1: 
+  assumes "a \<le> b"
   shows "lang (re_loop a b r) = (\<Union>x\<in>{a..b}. (lang (re_pow x r)))"
   using re_loop_iff1[of a b] using assms atLeastAtMost_iff by fastforce
 
-theorem re_loop2: "\<And> a b. a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
+theorem re_loop2: "a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
   by (simp add: re_loop_None_if)
-
-
 
 end

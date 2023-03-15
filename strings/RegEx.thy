@@ -28,8 +28,7 @@ primrec lang:: "'a::linorder regex \<Rightarrow> 'a word set"  where
   "lang (Diff r1 r2) = (lang r1) - (lang r2)"
 
 lemma star_any_is_univ: "w \<in> lang (Star Any)"
-  apply(auto)
-  using star_of_singletons_is_univ singleton_set by (metis One_nat_def)
+  by (metis lang.simps(2) lang.simps(6) singleton_set star_of_singletons_is_univ)
 
 
 section "Construction functions that perform simple normalisation"
@@ -84,9 +83,7 @@ fun re_comp:: "'a::linorder regex \<Rightarrow> 'a regex" where
   "re_comp r = Comp r"
 
 lemma re_comp_correct: "lang (re_comp r) = (lang (Comp r))"
-  apply(cases r rule: re_comp.cases)
-  apply(auto)
-  using star_any_is_univ by force
+  using star_any_is_univ by (cases r) auto
 
 fun re_diff:: "'a::linorder regex \<Rightarrow> 'a regex \<Rightarrow> 'a regex" where
   "re_diff None _ = None"|
@@ -109,13 +106,13 @@ lemma re_loop_iff1:
   assumes "a \<le> b"
   shows "w \<in> lang (re_loop r a b) \<longleftrightarrow> (\<exists>x. a \<le> x \<and> x \<le> b \<and> w \<in> lang (re_pow r x))"
   using assms
-  apply(induct b)
-  apply(auto simp add: UnE le_SucI not0_implies_Suc not_less_eq_eq re_union_correct)
+  apply (induct b)
+  apply (auto simp add: UnE le_SucI not0_implies_Suc not_less_eq_eq re_union_correct)
   apply (metis empty_iff lang.simps(1) le_Suc_eq re_loop.elims)
   using antisym not_less_eq_eq by fastforce
 
 lemma re_loop_None_if:"a > b \<Longrightarrow> re_loop r a b = None"
-  by(cases \<open>(r, a, b)\<close> rule: re_loop.cases) auto
+  by (cases \<open>(r, a, b)\<close> rule: re_loop.cases) auto
 
 (* A language is nullable if it accepts the empty word*)
 primrec nullable:: "'a::linorder regex \<Rightarrow> bool" 
@@ -232,21 +229,45 @@ primrec rderivw:: "'a::linorder word \<Rightarrow> 'a regex \<Rightarrow> 'a reg
   "rderivw \<epsilon> r = r" |
   "rderivw (a#u) r = rderivw u (rderiv a r)"
 
-lemma derivw_nullable_contains:"nullable (rderivw w r) \<Longrightarrow> w \<in> (lang r)"
-  apply (induct w arbitrary: r)
-  apply (auto simp add: nullability)
-  apply (metis deriv_correct rderiv_correct)
-  done
+lemma derivw_nullable_contains: 
+  assumes "nullable (rderivw w r)"
+  shows "w \<in> (lang r)"
+  using assms
+proof (induct w arbitrary: r)
+  case Nil
+  then show ?case 
+    by (auto simp add: nullability)
+next
+  case (Cons a w)
+  then have "\<epsilon> \<in> lang (rderivw w (rderiv a r))"
+    by (auto simp add: nullability)
+  then have "nullable (rderivw w (rderiv a r))"
+    by (simp add: nullability)
+  then have "a # w \<in> lang r"
+    using Cons(1) by (metis deriv_correct rderiv_correct)
+  then show ?case  
+    by auto
+qed
 
-
-lemma contains_derivw_nullable:"w \<in> (lang r) \<Longrightarrow> nullable (rderivw w r)"
-  apply(induct w arbitrary: r)
-  apply(auto simp add: nullability)
-  apply (metis deriv_correct rderiv_correct )
-  done
+lemma contains_derivw_nullable:
+  assumes "w \<in> (lang r)"
+  shows "nullable (rderivw w r)"
+  using assms
+proof (induct w arbitrary: r)
+  case Nil
+  then show ?case 
+    by (auto simp add: nullability)
+next
+  case (Cons a w)
+  have "a # w \<in> lang r"
+    using Cons by (auto simp add: nullability)
+  then have "\<epsilon> \<in> lang (rderivw w (rderiv a r))"
+    using Cons(1) by (auto simp add: nullability deriv_correct rderiv_correct)
+  then show ?case 
+    by (auto simp add: nullability)
+qed
 
 theorem derivative_correctness: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
   by (auto simp add: contains_derivw_nullable derivw_nullable_contains)
-
 
 end
