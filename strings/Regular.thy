@@ -28,7 +28,6 @@ primrec pow :: "'a RegLang \<Rightarrow> nat \<Rightarrow> 'a RegLang" where
 lemma pow_epsilon:"pow {\<epsilon>} n = {\<epsilon>}"
   by (induct n) (auto simp add: in_concat_if epsilon_concat_iff concat_def)
 
-
 lemma pow_zero_empty: "pow {} 0 = {\<epsilon>}"
   by auto
 
@@ -39,12 +38,13 @@ definition star :: "'a RegLang \<Rightarrow> 'a RegLang" where
   "star R = (\<Union>n. (pow R n))"
 
 lemma epsilon_in_star[simp]: "\<epsilon> \<in> star R"
-  apply(auto simp add: star_def)
 proof -
   have "\<epsilon> \<in> pow R 0" 
     by simp
-  then show "EX n. \<epsilon> \<in> pow R n" 
+  then have "EX n. \<epsilon> \<in> pow R n" 
     by (rule exI)
+  then show ?thesis
+    by (auto simp add: star_def)
 qed
 
 lemma singleton_set: "{w. (length w) = 1} = {v| a v. v = a#\<epsilon>}"
@@ -61,16 +61,23 @@ qed
 lemma star_all_pows: "star r = {w|w n. w \<in> pow r n}"
   by (auto simp add: star_def)
 
-lemma pow_not_zero:"n>0 \<and> w \<in> pow r n \<Longrightarrow> \<exists>m. w \<in> pow r (Suc m)"
+lemma pow_not_zero:"n > 0 \<and> w \<in> pow r n \<Longrightarrow> \<exists>m. w \<in> pow r (Suc m)"
   by (induct n) (auto simp add: concat_def)
 
 lemma star_of_epsilon:"star {\<epsilon>} = {\<epsilon>}"
   by (simp add:star_def pow_epsilon)
 
 lemma star_of_empty: "star {} = {\<epsilon>}"
-  apply(auto simp add: star_def)
-   apply (metis Regular.pow.simps(1) bot_nat_0.not_eq_extremum empty_iff pow_n_empty singletonD)
-  by (simp add: epsilon_in_pow)
+proof 
+  have "\<forall>x n. x \<in> pow {} n \<longrightarrow> x = \<epsilon>"
+    by (metis Regular.pow.simps(1) bot_nat_0.not_eq_extremum empty_iff pow_n_empty singletonD)
+  then show  "star {} \<subseteq> {\<epsilon>}"
+    by (auto simp add: star_def)
+next
+  show "{\<epsilon>} \<subseteq> star {}"
+    by (simp add: epsilon_in_pow)
+qed
+
 
 lemma concat_trans: "w \<in> r \<longleftrightarrow> a#w \<in> concat {a#\<epsilon>} r"
   by (auto simp add: concat_def)
@@ -86,15 +93,22 @@ proof
     by (simp only: star_all_pows)
 qed
 
-
-lemma concat_star:"set ws \<subseteq> R \<Longrightarrow> concat_all ws \<in> (star R)"
-  apply(induct ws)
-   apply(auto)
-  using concat_containment concat_star_subset by blast
+lemma concat_star:
+  assumes "set ws \<subseteq> R"
+  shows "concat_all ws \<in> (star R)"
+  using assms
+proof (induct ws)
+  case Nil
+  then show ?case 
+    by auto
+next
+  case (Cons a ws)
+  then show ?case
+    using concat_containment concat_star_subset by force
+qed
 
 lemma star_subsumes: "v\<cdot>w \<in> concat {v} (star r) \<and> v \<in> r \<Longrightarrow> v\<cdot>w \<in> (star r)"
-  apply(auto)
-  using concat_star_subset  using concat_containment in_concat_if by blast
+  using concat_star_subset concat_containment in_concat_if by blast
 
 lemma star_of_singletons_is_univ: "x \<in> star {v|v a. v = a#\<epsilon>}" 
 proof (induct x)
@@ -125,7 +139,7 @@ proof
     using assms by (induct ws) auto
 qed
 
-lemma x:"w \<in> pow r n \<Longrightarrow> \<exists>ws. w = concat_all ws \<and> set ws \<subseteq> r"
+lemma concat_all_subset_if_pow: "w \<in> pow r n \<Longrightarrow> \<exists>ws. w = concat_all ws \<and> set ws \<subseteq> r"
 proof (induct n arbitrary: r  w)
   case 0
   then show ?case 
@@ -144,19 +158,23 @@ next
     by simp
 qed
 
-
 lemma star_is_concats: "star R = {concat_all ws|ws. set ws \<subseteq> R}"
-  unfolding star_all_pows
-  apply(auto simp add: x)
-  apply (metis UN_E concat_star star_def)
-  done
+proof
+  show "star R \<subseteq> {concat_all ws |ws. set ws \<subseteq> R}"
+    unfolding star_all_pows
+    by (auto simp add: concat_all_subset_if_pow)
+next
+  have "\<And>ws. set ws \<subseteq> R \<Longrightarrow> \<exists>n. concat_all ws \<in> pow R n"
+    by (metis UN_E concat_star star_def) 
+  then show "{concat_all ws |ws. set ws \<subseteq> R} \<subseteq> star R"
+    unfolding star_all_pows by (auto simp add: concat_all_subset_if_pow)
+qed
 
 lemma star_rm_epsilon: "star (R-{\<epsilon>}) = star R"
   unfolding star_is_concats by (auto simp add: star_remove_epsilons)
 
-lemma [simp]: "w \<in> pow R n \<Longrightarrow> w \<in> (star R)"
+lemma star_if_pow[simp]: "w \<in> pow R n \<Longrightarrow> w \<in> (star R)"
   by (auto simp add: star_def)
-
 
 (* Derivative of regular languages *)
 definition deriv:: "'a \<Rightarrow> 'a RegLang \<Rightarrow> 'a RegLang" where 
@@ -178,7 +196,7 @@ lemma null_epsilon[simp]: "null {\<epsilon>} = {\<epsilon>}"
 lemma deriv_empty:"deriv a {} = {}"
   by (simp add: deriv_def)
 
-lemma deriv_const:"deriv a {(b#w)} = (if a = b then {w} else {})"
+lemma deriv_const: "deriv a {(b#w)} = (if a = b then {w} else {})"
   by (auto simp add: deriv_def)
 
 lemma deriv_union: "deriv a (l1 \<union> l2) = (deriv a l1) \<union> (deriv a l2)"
@@ -189,22 +207,24 @@ lemma deriv_inter: "deriv a (l1 \<inter> l2) = (deriv a l1) \<inter> (deriv a l2
 
 lemma deriv_concat:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
   unfolding deriv_def concat_def null_def
-  apply(simp)
-  apply(auto)
+  apply auto
   by (metis append_eq_Cons_conv)+
-
 
 lemma pow_not_epsilon_is_succ:"n>0 \<and> w \<in> pow R n \<Longrightarrow> \<exists>m. w \<in> pow R (Suc m)"
   by (induct n) (auto simp add: pow_def)
 
 lemma star_unroll:"star r = (concat r (star r)) \<union> {\<epsilon>}"
-  unfolding concat_def star_all_pows
-  apply(auto simp add: pow_not_zero concat_def)
-    apply (metis Regular.pow.simps(1) Regular.pow.simps(2) bot_nat_0.not_eq_extremum in_concat_if pow_not_epsilon_is_succ singletonD)
-   apply (simp add: epsilon_in_pow)
-  using Regular.pow.simps(2) concat_containment by blast
-
-
+proof -
+  have "\<And>x n. x \<noteq> \<epsilon> \<Longrightarrow> x \<in> pow r n \<Longrightarrow> \<exists>u v. x = u \<cdot> v \<and> u \<in> r \<and> (\<exists>n. v \<in> pow r n)"
+    by (metis Regular.pow.simps(1) Regular.pow.simps(2) bot_nat_0.not_eq_extremum in_concat_if 
+        pow_not_epsilon_is_succ singletonD)
+  moreover
+  have "\<And>u v n. u \<in> r \<Longrightarrow> v \<in> pow r n \<Longrightarrow> \<exists>n. u \<cdot> v \<in> pow r n"
+    unfolding concat_def star_all_pows using Regular.pow.simps(2) concat_containment by blast
+  ultimately
+  show ?thesis
+    unfolding concat_def star_all_pows by (auto simp add: pow_not_zero concat_def epsilon_in_pow)
+qed
 
 lemma deriv_star:"deriv a (star R) = concat (deriv a R) (star R)"
 proof -
