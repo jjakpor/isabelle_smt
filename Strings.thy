@@ -57,8 +57,12 @@ abbreviation str_suffixof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
 abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" where 
   "str_contains \<equiv> Words.contains"
 
+
+(*fun str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
+  "str_indexof w v i = (if i \<ge> 0 \<and> (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (str_indexof_nat w v (Int.nat i)) else -1)"*)
+
 abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof w v i \<equiv> undefined"
+  "str_indexof w v i \<equiv> (if i\<ge>0 \<and>  (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (indexof_nat w v (Int.nat i)) else -1)"
 
 abbreviation str_replace:: "uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
   "str_replace \<equiv> undefined"
@@ -127,8 +131,14 @@ subsection "Model Proofs"
 text "We shows that our interpretation of the functions satisfy all conditions stated by the SMT-LIB theory 
 of strings, which thus proofs it to be equivalent to the standard model of the theory."
 
-abbreviation smallest where
-  "smallest K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
+abbreviation smallest_set where
+  "smallest_set K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
+
+abbreviation smallest_int where
+  "smallest_int n P \<equiv> P n \<and> (\<forall>n'. P n' \<longrightarrow> n \<le> n')"
+
+abbreviation shortest_word where
+  "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> w \<le> w')"
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -249,26 +259,51 @@ To be consistent, we need (str_contains (str_substr w i \<bar>w\<bar>) v)  insta
 If either of these premises is not met, or i<0, the the function must evaluate to -1.
 "
 
-(* Two helpful lemmas *)
-lemma indexof_if_not_contains:"\<not> (str_contains (str_substr w i \<bar>w\<bar>) v) \<Longrightarrow> str_indexof w v i = -1" 
-  sorry
-lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> str_contains (str_substr w i \<bar>w\<bar>) v \<Longrightarrow> str_indexof w v i \<ge> 0" 
-  sorry
-
-theorem str_indexof1: 
+theorem str_indexof1:
   assumes "i\<ge>0" and "i\<le>\<bar>w\<bar>" and "str_contains (str_substr w i \<bar>w\<bar>) v"
-  shows "\<exists>n. str_indexof w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>) \<and> 
-          (\<forall>n'. n' < n \<longrightarrow> \<not>(\<exists>x' y'. w = x'\<cdot>v\<cdot>y' \<and> i \<le> n' \<and> n' = \<bar>x'\<bar>))" 
-  sorry
+  shows "\<exists>n. str_indexof w v i = n \<and> smallest_int n (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = \<bar>x\<bar>))" 
+proof -
+  have "nat i \<le> length w"
+    using assms(2) nat_le_iff by blast
+  moreover
+  have "sublist v (drop (nat i) w)"
+    by (smt (verit, best) assms(3) contains_iff_factor dual_order.refl factor.elims(1) 
+        factor_suffix nat_add_distrib nat_int sublist_Nil_left sublist_Nil_right trans_le_add2)
+  ultimately
+  have "smallest_int (indexof_nat w v (Int.nat i)) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (Int.nat i) \<le> n \<and> n = length x))"
+    using str_indexof_nat1[of "Int.nat i" w v] by auto
+  then show ?thesis
+    by (metis assms nat_int nat_le_iff)
+qed
 
 theorem str_indexof2: 
   assumes "i<0 \<or> i>\<bar>w\<bar> \<or> \<not> str_contains (str_substr w i \<bar>w\<bar>) v" 
   shows "str_indexof w v i = -1" 
-  sorry
+proof -
+  {
+    assume "i<0"
+    then have ?thesis
+      by auto
+  }
+  moreover
+  {
+    assume "\<not> str_contains (str_substr w i \<bar>w\<bar>) v" 
+    then have ?thesis
+      using assms indexof_if_not_contains''' by presburger
+  }
+  moreover
+  {
+    assume "i>\<bar>w\<bar>"
+    then have ?thesis
+      using assms by auto 
+  }
+  ultimately show ?thesis 
+    using assms by metis
+qed
 
 theorem str_replace1:
   assumes "str_contains w v"
-  shows " \<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. \<bar>x'\<bar> < \<bar>x\<bar> \<longrightarrow> (\<nexists>y'. w=x'\<cdot>v\<cdot>y'))"
+  shows "\<exists>x y. str_replace w v u = x\<cdot>u\<cdot>y \<and> shortest_word x (\<lambda>y. w = x\<cdot>v\<cdot>y)"
   sorry
 
 theorem str_replace2: 
@@ -334,6 +369,9 @@ next
   then show ?case
     using u_v_p Suc by auto
 qed
+
+abbreviation smallest where
+  "smallest K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
 
 theorem re_star: "smallest (lang (Star r)) (\<lambda>K. \<epsilon> \<in> K \<and> {x\<cdot>y | x y. x \<in> lang r \<and> y \<in> K} \<subseteq> K)"
 proof -

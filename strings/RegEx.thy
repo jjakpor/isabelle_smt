@@ -270,5 +270,4 @@ qed
 theorem derivative_correctness: "w \<in> (lang r) \<longleftrightarrow> nullable (rderivw w r)"
   by (auto simp add: contains_derivw_nullable derivw_nullable_contains)
 
-
 end

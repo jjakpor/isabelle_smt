@@ -42,6 +42,16 @@ primrec contains:: "'a word \<Rightarrow> 'a word \<Rightarrow> bool" where
 lemma contains_iff_factor:"contains w v \<longleftrightarrow> factor v w"
   by (induct w) (auto simp add: sublist_Cons_right)
 
+fun indexof_0:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat" where 
+  "indexof_0 (c#w) v = (if prefix v (c#w) then 0 else Suc (indexof_0 w v))"
+| "indexof_0 [] v = 0"
+
+fun indexof_nat:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat \<Rightarrow> nat" where 
+  "indexof_nat w v n = n + indexof_0 (drop n w) v"
+
+fun indexof:: "'a word \<Rightarrow> 'a word \<Rightarrow> nat \<Rightarrow> nat option" where 
+  "indexof w v i = (if i \<ge> 0 \<and> (factor (w[i;\<bar>w\<bar>]) v) \<and> i\<le>\<bar>w\<bar> then Some (indexof_nat w v i) else None)"
+
 
 subsection "Factorization"
 
@@ -128,5 +138,136 @@ lemma if_contains_then_fac_has_prefix:"(contains w d) \<Longrightarrow> \<exists
 
 lemma epsilon_contains_epsilon[simp]: "contains \<epsilon> v \<Longrightarrow> v = \<epsilon>" 
   by auto
+
+
+subsection "Searching and Replacing Factors" 
+
+lemma indexof_if_not_contains:"\<not> (factor (w[i; \<bar>w\<bar>]) v) \<Longrightarrow> indexof w v i = None" 
+  by auto
+
+lemma indexof_if_not_contains''':"\<not> (factor (w[i; \<bar>w\<bar>]) v) \<Longrightarrow> indexof w v i = None"
+  by simp 
+
+lemma indexof_if_contains: "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor (w[i; \<bar>w\<bar>]) v \<Longrightarrow> \<exists>r. indexof w v i = Some r" 
+  by auto
+
+lemma indexof_if_contains''': "i\<ge>0 \<Longrightarrow> i\<le>\<bar>w\<bar> \<Longrightarrow> factor (w[i; \<bar>w\<bar>]) v \<Longrightarrow> \<exists>r. indexof w v i =  Some r"
+  by simp
+
+theorem indexof_01:
+  assumes "factor v w"
+  shows "\<exists>n. (indexof_0 w v) =  n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n' = \<bar>x\<bar> ) \<longrightarrow> n \<le> n')" 
+  using assms
+proof (induction w)
+  case Nil
+  then show ?case
+    by auto
+next
+  case (Cons a w)
+  then have split: "prefix v (a # w) \<or> (\<not>prefix v (a # w) \<and> sublist v w)"
+    by (metis contains.simps(2) contains_iff_factor factor.elims(2))
+  then have "(\<exists>x y. a # w = append x (append v y) \<and> indexof_0 (a # w) v = length x)"
+  proof 
+    assume "prefix v (a # w)"
+    then have "indexof_0 (a # w) v = 0"
+      by auto
+    moreover
+    have "\<exists>y. a # w = (append v y)"
+      using \<open>prefix v (a # w)\<close> prefix_def by auto
+    ultimately
+    have "(\<exists>y. a # w = (append v y) \<and> indexof_0 (a # w) v = 0)"
+      by auto
+    then show "(\<exists>x y. a # w = append x (append v y) \<and> indexof_0 (a # w) v = length x)"
+      by auto
+  next
+    assume "\<not> prefix v (a # w) \<and> sublist v w"
+    then have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (indexof_0 w v) = length x)"
+      using Cons(1) by auto
+    then show "(\<exists>x y. a # w = x\<cdot> (v\<cdot> y) \<and> indexof_0 (a # w) v = length x)"
+      by (metis \<open>\<not> prefix v (a # w) \<and> sublist v w\<close> add.right_neutral add_Suc_right append_Cons list.size(4) indexof_0.simps(1))
+  qed
+  moreover
+  have "(\<forall>n'. (\<exists>x y. a # w = x\<cdot> (v\<cdot> y) \<and> n' = length x) \<longrightarrow> indexof_0 (a # w) v \<le> n')"
+  proof (rule, rule)
+    fix n'
+    assume "\<exists>x y. (a # w = x\<cdot> (v\<cdot> y) \<and> n' = length x)"
+    then obtain x y where x_y_p: "a # w = x\<cdot>(v\<cdot> y) \<and> n' = length x"
+      by auto
+    from split show "indexof_0 (a # w) v \<le> n'"
+    proof 
+      assume "prefix v (a # w)"
+      show "indexof_0 (a # w) v \<le> n'"
+        by (simp add: \<open>prefix v (a # w)\<close>)
+    next
+      assume a: "\<not> prefix v (a # w) \<and> sublist v w "
+      have n'_gr_0: "n' > 0"
+        using \<open>a # w = append x (append v y) \<and> n' = length x\<close> a by force
+      from a have "indexof_0 (a # w) v = Suc (indexof_0 w v)"
+        by auto
+      from a have "\<exists>n. (indexof_0 w v) =  n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n' = \<bar>x\<bar> ) \<longrightarrow> n \<le> n')"
+        using Cons by auto
+      then have "(\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> n' = length x) \<longrightarrow> (indexof_0 w v) \<le> n')"
+        by auto
+      then have "(\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> Suc n' = length (a#x)) \<longrightarrow> indexof_0 (a # w) v \<le> Suc n')"
+        by auto
+      then show "indexof_0 (a # w) v \<le> n'"
+        by (smt (verit, ccfv_SIG) n'_gr_0 x_y_p a append_eq_Cons_conv gr0_implies_Suc prefixI)
+    qed
+  qed
+  ultimately
+  show ?case 
+    by auto
+qed
+
+theorem str_indexof_nat1: 
+  assumes "i\<le> length w" and "factor v (drop i w)"
+  shows "\<exists>n. indexof_nat w v i = n \<and> (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n' \<and> n' = length x)  \<longrightarrow> n \<le> n')" 
+proof -
+  have sm: "\<exists>n. (indexof_0 (drop i w) v) =  n \<and> (\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> n = \<bar>x\<bar>) \<and> (\<forall>n'. (\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> n' = \<bar>x\<bar> ) \<longrightarrow> n \<le> n')"
+    using assms indexof_01 by blast
+  then have "\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> (indexof_0 (drop i w) v) = length x"
+    by auto
+  then obtain x y where x_y_p: "(drop i w) = x\<cdot>v\<cdot>y \<and> (indexof_0 (drop i w) v) = length x"
+    by auto
+  define x' where "x' = take i w \<cdot> x"
+  {
+    have a: "w = x'\<cdot>v\<cdot>y"
+      by (metis x_y_p append_assoc append_take_drop_id x'_def)
+    moreover
+    have b: "i \<le> (i + indexof_0 (drop i w) v)"
+      by auto
+    moreover
+    have c: "i + indexof_0 (drop i w) v = length x'"
+      using assms(1) x'_def x_y_p by fastforce
+    ultimately
+    have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> (i + indexof_0 (drop i w) v) \<and> (i + indexof_0 (drop i w) v) = length x)"
+      by metis
+  }
+  moreover
+  have "\<forall>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x) \<longrightarrow> (i + indexof_0 (drop i w) v) \<le> n"
+  proof (rule, rule)
+    fix n
+    assume "(\<exists>x'' y''. w = x''\<cdot>v\<cdot>y'' \<and> i \<le> n \<and> n = length x'')"
+    then obtain x'' y'' where x''_y''_p:
+      "w = x''\<cdot>v\<cdot>y''"
+      "i \<le> n"
+      "n = length x''"
+      by auto
+    define x''' where "x''' = drop i x''"
+    have drop_w_split: "(drop i w) = drop i x'' \<cdot> v\<cdot>y''"
+      using x''_y''_p by force
+    have "\<forall>n. (\<exists>x y. (drop i w) = x\<cdot>v\<cdot>y \<and> n = length x) \<longrightarrow> indexof_0 (drop i w) v \<le> n"
+      using sm by auto
+    then show "(i + indexof_0 (drop i w) v) \<le> n"
+      using drop_w_split x''_y''_p(2) x''_y''_p(3) by fastforce
+  qed
+  ultimately
+  (*have "smallest_int (i + indexof_0 (drop i w)  v) (\<lambda>n. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n \<and> n = length x))"*) 
+  have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> (i + indexof_0 (drop i w)  v) \<and> (i + indexof_0 (drop i w)  v) = length x) \<and> (\<forall>n'. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> i \<le> n' \<and> n' = length x) \<longrightarrow> (i + indexof_0 (drop i w)  v)\<le>n')"
+    by auto
+  then show ?thesis 
+   by simp
+qed
+
 
 end
