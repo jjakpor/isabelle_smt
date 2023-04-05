@@ -1,9 +1,11 @@
 theory Strings
-  imports Core "strings/RegEx" "strings/Words"  "HOL-Library.Numeral_Type"  "HOL-Library.List_Lexorder"
+  imports Core "strings/RegEx" "strings/Words"  "HOL-Library.List_Lexorder"
 begin
+declare [[show_sorts]]
 
 no_notation List.length ("\<bar>_\<bar>")
 no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
+
 
 
 section "Standard model for the SMT-LIB Theory of String"
@@ -17,9 +19,53 @@ We define the set of unicode code points as the ring of integers up to 196606.
 Words as lists over this alphabet (type) and regular languages as regular expression over the
 alphabet, equipped with a function that maps expression to actual languages."
 
-type_synonym uc_char = "196607"
-type_synonym uc_word = "uc_char word"
-type_synonym uc_regex = "uc_char regex"
+
+
+typedef uc_chr = "{(0::nat)..(196607)}" morphisms as_nat chr by auto
+
+setup_lifting type_definition_uc_chr
+code_datatype chr
+
+instantiation uc_chr::one begin  
+lift_definition one_chr::uc_chr is "1" by auto
+instance ..
+end 
+
+instantiation uc_chr::zero begin 
+lift_definition zero_chr::uc_chr is "0" by auto
+instance ..
+end
+
+instantiation uc_chr::equal begin
+lift_definition equal_uc_chr :: "uc_chr \<Rightarrow> uc_chr \<Rightarrow> bool"
+  is "\<lambda> a b. a = b" .
+instance apply(standard; transfer)
+  by (auto)
+end
+
+instantiation uc_chr::linorder begin
+lift_definition less_eq_uc_chr::"uc_chr \<Rightarrow> uc_chr \<Rightarrow> bool" is "\<lambda> a b. a \<le> b" .
+lift_definition less_uc_chr::"uc_chr \<Rightarrow> uc_chr\<Rightarrow> bool" is "\<lambda> a b. a < b" .
+
+instance apply(standard) 
+  using less_uc_chr.rep_eq less_eq_uc_chr.rep_eq apply auto
+  using as_nat_inject by auto
+end
+
+
+
+lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr x \<le> chr y \<longleftrightarrow> x \<le> y"
+  apply (auto)
+  by (simp_all add: eq_onp_same_args less_eq_uc_chr.abs_eq)
+
+lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr x < chr y \<longleftrightarrow> x < y"
+  apply (auto)
+  by (simp_all add: eq_onp_same_args less_uc_chr.abs_eq)
+
+
+
+type_synonym uc_word = "uc_chr word"
+type_synonym uc_regex = "uc_chr regex"
 
 definition UC:: "uc_word set" where "UC = {w. True}"
 
@@ -33,7 +79,7 @@ restrictions of Isabelle/HOL. However, there is a one to one mapping between the
 and the symbols used in SMT-LIB. This mapping is specified in 'spec.json'."
 
 
-abbreviation str_char:: "uc_char \<Rightarrow> uc_word" where
+abbreviation str_char:: "uc_chr \<Rightarrow> uc_word" where
   "str_char a \<equiv> a#\<epsilon>"
 
 abbreviation str_concat:: "uc_word \<Rightarrow> uc_word  \<Rightarrow> uc_word" where 
@@ -311,7 +357,6 @@ theorem str_replace1:
 theorem str_replace2: 
   assumes "\<not> str_contains w v"
   shows "str_replace w v u = w" 
-  sledgehammer
   using assms replace_id_if_not_contains by blast
 
 (* TODO: Add replace_all, replace_re, replace_all_re! *)
@@ -324,7 +369,7 @@ maps expression to languages."
 
 text "We first who that this lang operator maps into the powerset of all unicode strings"
 
-theorem re_lang_unicode: "range (lang::(uc_char regex \<Rightarrow> uc_char word set)) \<subseteq> Pow UC"
+theorem re_lang_unicode: "range (lang::(uc_chr regex \<Rightarrow> uc_chr word set)) \<subseteq> Pow UC"
   using UC_def by force
 
 theorem str_to_re: "lang (str_to_re w) = {w}" by auto
