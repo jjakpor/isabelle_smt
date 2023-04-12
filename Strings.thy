@@ -19,12 +19,23 @@ We define the set of unicode code points as the ring of integers up to 196606.
 Words as lists over this alphabet (type) and regular languages as regular expression over the
 alphabet, equipped with a function that maps expression to actual languages."
 
+(*
+Other approach:
 
+datatype unicode_char = Char int
+fun Chr::"int \<Rightarrow> unicode_char"
+  where "Chr x = (if 0\<ge> x \<and>  x \<le> 196607 then Char x else undefined)"
+fun Cnat::"unicode_char \<Rightarrow> int"
+  where "Cnat (Char c) = (if 0\<ge> c \<and> c \<le> 196607 then c else undefined)"
+*)
 
 typedef uc_chr = "{(0::nat)..(196607)}" morphisms as_nat chr by auto
 
 setup_lifting type_definition_uc_chr
+
+lemma [code abstype]: "chr (as_nat x) = x" by (rule as_nat_inverse)
 code_datatype chr
+
 
 instantiation uc_chr::one begin  
 lift_definition one_chr::uc_chr is "1" by auto
@@ -54,6 +65,9 @@ end
 
 
 
+lemma[simp]: "x\<in>{(0::nat)..(196607)} \<Longrightarrow> as_nat (chr x) = x" 
+  by (simp add: chr_inverse)
+
 lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr x \<le> chr y \<longleftrightarrow> x \<le> y"
   apply (auto)
   by (simp_all add: eq_onp_same_args less_eq_uc_chr.abs_eq)
@@ -61,6 +75,11 @@ lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr x \<le> chr y \
 lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr x < chr y \<longleftrightarrow> x < y"
   apply (auto)
   by (simp_all add: eq_onp_same_args less_uc_chr.abs_eq)
+
+lemma[simp]: "x < 196608 \<and> y < 196608 \<Longrightarrow> chr y = chr x \<longleftrightarrow> x = y" 
+  apply(auto)
+  by (simp add: chr_inject)
+
 
 
 
@@ -78,9 +97,6 @@ Note that the symbols are not identicaly to the one state in the SMT-LIB theory 
 restrictions of Isabelle/HOL. However, there is a one to one mapping between the symbols used here
 and the symbols used in SMT-LIB. This mapping is specified in 'spec.json'."
 
-
-abbreviation str_char:: "uc_chr \<Rightarrow> uc_word" where
-  "str_char a \<equiv> a#\<epsilon>"
 
 abbreviation str_concat:: "uc_word \<Rightarrow> uc_word  \<Rightarrow> uc_word" where 
   "(str_concat) u v \<equiv> u\<cdot>v" 
@@ -170,6 +186,82 @@ abbreviation re_pow::"nat \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where
 
 abbreviation re_loop:: "nat \<Rightarrow> nat \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where 
   "re_loop a b r \<equiv> RegEx.re_loop r a b"
+
+(* String-Integer-Conversion *)
+
+fun chr_to_code::"uc_chr \<Rightarrow> int" where "chr_to_code c = int (as_nat c)"
+
+fun chr_to_digit::"uc_chr \<Rightarrow> int" where
+"chr_to_digit c = (let v = chr_to_code c in
+  if v = 48 then 0 else 
+  if v = 49 then 1 else 
+  if v = 50 then 2 else 
+  if v = 51 then 3 else 
+  if v = 52 then 4 else 
+  if v = 53 then 5 else 
+  if v = 54 then 6 else 
+  if v = 55 then 7 else 
+  if v = 56 then 8 else 
+  if v = 57 then 9 else -1
+)"
+
+fun digit_to_chr::"int \<Rightarrow> uc_chr" where
+"digit_to_chr d = (
+  if d = 0 then (chr 48) else
+  if d = 1 then (chr 49) else
+  if d = 2 then  (chr 50) else
+  if d = 3 then  (chr 51) else
+  if d = 4 then  (chr 52) else
+  if d = 5 then  (chr 53) else
+  if d = 6 then  (chr 54) else
+  if d = 7 then  (chr 55) else
+  if d = 8 then  (chr 56) else
+  if d = 9 then  (chr 57) else (chr 0)
+)"
+
+lemma "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) = i"
+  by auto presburger
+
+
+fun chr_is_digit::"uc_chr \<Rightarrow> bool" where
+  "chr_is_digit x = (chr_to_digit x \<ge> 0)"
+
+fun is_digit::"uc_word \<Rightarrow> bool" where
+  "is_digit (x#\<epsilon>) = chr_is_digit x"|
+  "is_digit _ = False"
+
+fun to_code::"uc_word \<Rightarrow> int" where
+  "to_code (x#\<epsilon>) = chr_to_code x" |
+  "to_code _ = -1"
+
+fun from_code:: "int \<Rightarrow> uc_word" where 
+  "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [chr (nat n)] else \<epsilon>)"
+
+fun digs_to_int::"int list \<Rightarrow> int" where
+  "digs_to_int (x#\<epsilon>) = x"|  
+  "digs_to_int (x#xs) = (((10::int)^(length xs))*x)+digs_to_int xs"|
+  "digs_to_int \<epsilon> = -1"
+
+
+fun nat_pos::"nat \<Rightarrow> nat" where 
+"nat_pos n = (let d = (n div 10) in if d = 0 then 1 else 1+(nat_pos d))"
+
+
+fun nat_to_digs::"nat \<Rightarrow> int list" where 
+  "nat_to_digs x = (if x\<le>9 then [int x] else (nat_to_digs (x div 10))@[int (x mod 10)])"
+
+
+primrec all_digits::"int list \<Rightarrow> bool" where 
+"all_digits \<epsilon> = True" |
+"all_digits (x#xs) = (0 \<le> x \<and> x\<le>9 \<and> all_digits xs)"
+
+
+fun to_int::"uc_word \<Rightarrow> int" where 
+  "to_int w = (let vs =  (map chr_to_digit w) in (if all_digits vs then digs_to_int vs else (-1)))"
+
+fun from_int::"int \<Rightarrow> uc_word" where 
+"from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
+
 
 
 subsection "Model Proofs"
