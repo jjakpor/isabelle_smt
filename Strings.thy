@@ -33,9 +33,10 @@ typedef uc_chr = "{(0::nat)..(196607)}" morphisms as_nat chr by auto
 
 setup_lifting type_definition_uc_chr
 
+
 lemma [code abstype]: "chr (as_nat x) = x" by (rule as_nat_inverse)
 code_datatype chr
-
+lemma[code]: "as_nat (chr x) = x" sorry
 
 instantiation uc_chr::one begin  
 lift_definition one_chr::uc_chr is "1" by auto
@@ -219,23 +220,56 @@ fun digit_to_chr::"int \<Rightarrow> uc_chr" where
   if d = 9 then  (chr 57) else (chr 0)
 )"
 
-lemma "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) = i"
-  by auto presburger
+
+
+lemma chr_digit_inv: "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) =  i"
+  apply(auto) 
+  by presburger
 
 
 fun chr_is_digit::"uc_chr \<Rightarrow> bool" where
   "chr_is_digit x = (chr_to_digit x \<ge> 0)"
 
+lemma chr_is_digit_iff: "chr_is_digit c \<longleftrightarrow> (48 \<le> (as_nat c) \<and> (as_nat c) \<le> 57)"
+  apply(auto simp add: Let_def)
+  by presburger
+
 fun is_digit::"uc_word \<Rightarrow> bool" where
   "is_digit (x#\<epsilon>) = chr_is_digit x"|
   "is_digit _ = False"
+
+lemma "is_digit x \<Longrightarrow> \<exists>c. x = [c]" 
+  apply(cases \<open>x\<close> rule: is_digit.cases)
+  by auto
+
+theorem is_digit: "is_digit x \<longleftrightarrow> (\<exists>c. x=(c#\<epsilon>) \<and> 48 \<le> as_nat c \<and> as_nat c \<le> 57)"
+  apply(cases \<open>x\<close> rule: is_digit.cases)
+  apply(auto)
+  using of_nat_le_iff apply fastforce
+  using of_nat_le_iff apply fastforce
+  by (smt (z3) int_eq_iff_numeral int_ops(2) numeral_Bit0 numeral_Bit1 numerals(1) of_nat_mono)
 
 fun to_code::"uc_word \<Rightarrow> int" where
   "to_code (x#\<epsilon>) = chr_to_code x" |
   "to_code _ = -1"
 
+theorem to_code1: "\<bar>w\<bar> \<noteq> 1 \<Longrightarrow> to_code w = -1"
+  apply(cases \<open>w\<close> rule: to_code.cases) by auto
+
+theorem to_code2: "w = [c] \<Longrightarrow> to_code w = int (as_nat c)"
+  apply(cases \<open>w\<close> rule: to_code.cases) by auto
+
+
 fun from_code:: "int \<Rightarrow> uc_word" where 
   "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [chr (nat n)] else \<epsilon>)"
+
+
+theorem from_code1: "0 \<le> n \<Longrightarrow> n \<le> 196607 \<Longrightarrow> from_code n = [(chr (nat n))]"
+  by auto
+
+theorem from_code2: "n<0 \<or>  196607 < n \<Longrightarrow> from_code n = \<epsilon>"
+  by auto
+
 
 fun digs_to_int::"int list \<Rightarrow> int" where
   "digs_to_int (x#\<epsilon>) = x"|  
@@ -255,13 +289,112 @@ primrec all_digits::"int list \<Rightarrow> bool" where
 "all_digits \<epsilon> = True" |
 "all_digits (x#xs) = (0 \<le> x \<and> x\<le>9 \<and> all_digits xs)"
 
+primrec all_digit_chrs::"uc_word \<Rightarrow> bool" where
+"all_digit_chrs \<epsilon> = True" |
+"all_digit_chrs (a#w) = (chr_is_digit a \<and> (all_digit_chrs w))"
 
-fun to_int::"uc_word \<Rightarrow> int" where 
-  "to_int w = (let vs =  (map chr_to_digit w) in (if all_digits vs then digs_to_int vs else (-1)))"
+
+
+fun to_int::"uc_word \<Rightarrow> int" where
+  "to_int \<epsilon> = -1" |
+  "to_int (a#\<epsilon>) = (chr_to_digit a)" |
+  "to_int w = (let n = (chr_to_digit (last w)) in let r= (to_int (butlast w)) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
+
+
+value "chr_to_digit (chr 49)"
+value "chr_to_digit (chr 50)"
+value "chr_to_digit (chr 51)"
+value "to_int [chr 51, chr 50, chr 49]"
+
+lemma to_digit_iff_is_digit: "chr_to_digit a \<ge> 0 \<longleftrightarrow> chr_is_digit a"
+  by auto
+ 
+
+lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
+  apply(auto)
+  by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
+
+
+lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
+  by (auto split: if_splits simp add: Let_def)
+
+
+  
+lemma A:"\<not>(chr_is_digit c) \<Longrightarrow> to_int (u\<cdot>[c]) = -1"
+  apply(cases rule: to_int.cases)
+  apply(simp_all)
+  using is_digit_iff_conv_positive apply auto
+  by (smt (verit) chr_to_digit.simps dbl_inc_simps(3) dbl_inc_simps(5) int_eq_iff_numeral last_ConsL neg_one_eq_numeral_iff numeral_Bit0 snoc_eq_iff_butlast to_code.simps(1) to_code2 to_int.elims)
+
+
+lemma B:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (a#w)" by auto
+lemma C:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (u\<cdot>[a]\<cdot>v)" 
+  apply(induct u)
+  by(auto)
+
+
+  
+theorem to_int1:"w = \<epsilon> \<or> (w = u\<cdot>[c]\<cdot>v) \<and> \<not>(chr_is_digit c) \<Longrightarrow> to_int w = -1"
+  sorry
+  
+
+theorem to_int2: "w=[c] \<Longrightarrow> chr_is_digit c \<Longrightarrow> to_int w = chr_to_digit c"
+  by (auto simp add: Let_def)
+
+
+theorem to_int3: "w=u\<cdot>v \<Longrightarrow> \<bar>v\<bar>=1 \<Longrightarrow> to_int u \<ge> 0 \<Longrightarrow> to_int v \<ge> 0 \<Longrightarrow> to_int w = 10*(to_int u) + (to_int v)"
+proof -
+  assume a1:"w=u\<cdot>v"
+  assume a2:"\<bar>v\<bar>=1"
+  assume a3:"to_int u \<ge> 0"
+  assume a4:"to_int v \<ge> 0"
+  
+  from a1 a2 have p:"\<exists>c. w = u\<cdot>[c]"
+    by (simp add: length_Suc_conv)
+  then obtain c where c_def:"w = u\<cdot>[c]" by fastforce
+
+  from p a1 a2 have u_def:"v = [c]"  by (simp add: c_def)
+  then have "to_int [c] \<ge> 0"  using a4 by blast
+  then have c_digit: "chr_is_digit c" using to_int_chr_iff u_def a3 by blast
+
+  from a3  have u:"u \<noteq> \<epsilon>"  by fastforce
+  then have w_len:"\<bar>w\<bar>>1" using c_def by auto
+  then have x:"\<bar>u\<cdot>[c]\<bar>>1"  using c_def by blast
+  then have x:"(\<forall>a. u\<cdot>[c] \<noteq> a#\<epsilon>) \<and>  u\<cdot>[c] \<noteq> \<epsilon>"  by simp
+
+
+  from a1 u_def have "to_int w  = to_int (u\<cdot>[c])" by simp
+  also have "... = (let n = (chr_to_digit (last (u\<cdot>[c]))) in let r= (to_int (butlast (u\<cdot>[c]))) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
+    using x to_int.elims   by metis
+  also have "... = (let n = (chr_to_digit c) in let r= (to_int u) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
+    by simp
+  also have "... = 10*(to_int u) + (chr_to_digit c)" using c_digit by (simp add: a3)
+
+  finally show ?thesis 
+    using to_int.simps(2) u_def  by presburger
+qed
+
+
+
+
+
 
 fun from_int::"int \<Rightarrow> uc_word" where 
 "from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
 
+lemma "(from_int 132) = [chr 49, chr 51, chr 50]" by auto
+lemma "to_int [chr 49, chr 49, chr 49] = 111" sorry
+
+
+
+
+
+lemma "to_int (from_int 132) = 132" by auto
+
+
+theorem "n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
+  
+  sorry
 
 
 subsection "Model Proofs"
@@ -277,6 +410,11 @@ abbreviation smallest_int where
 
 abbreviation shortest_word where
   "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> \<bar>w\<bar> \<le> \<bar>w'\<bar>)"
+
+
+theorem from_int1:"n< 0 \<Longrightarrow> from_int n = \<epsilon>" by(auto)
+
+
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -559,5 +697,9 @@ theorem re_loop1:
 
 theorem re_loop2: "a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
   by (simp add: re_loop_None_if)
+
+subsubsection "String Number Conversions"
+
+
 
 end
