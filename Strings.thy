@@ -300,11 +300,23 @@ fun to_int::"uc_word \<Rightarrow> int" where
   "to_int (a#\<epsilon>) = (chr_to_digit a)" |
   "to_int w = (let n = (chr_to_digit (last w)) in let r= (to_int (butlast w)) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
 
+fun to_int_rev::"uc_word \<Rightarrow> int" where
+  "to_int_rev \<epsilon> = -1" |
+  "to_int_rev (a#\<epsilon>) = (chr_to_digit a)" |
+  "to_int_rev (a#w) = (let n = (chr_to_digit a) in let r= (to_int_rev w) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
 
 value "chr_to_digit (chr 49)"
 value "chr_to_digit (chr 50)"
 value "chr_to_digit (chr 51)"
 value "to_int [chr 51, chr 50, chr 49]"
+value "to_int_rev [chr 51, chr 50, chr 49]"
+
+lemma last_rev: "last (rev (a#w)) = a"
+  by (auto)
+  
+lemma butlast_rev: "butlast (rev (a#w)) = rev w"
+  by (auto)
+  
 
 lemma to_digit_iff_is_digit: "chr_to_digit a \<ge> 0 \<longleftrightarrow> chr_is_digit a"
   by auto
@@ -331,8 +343,6 @@ lemma B:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (a#w)" by 
 lemma C:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (u\<cdot>[a]\<cdot>v)" 
   apply(induct u)
   by(auto)
-
-
   
 theorem to_int1:"w = \<epsilon> \<or> (w = u\<cdot>[c]\<cdot>v) \<and> \<not>(chr_is_digit c) \<Longrightarrow> to_int w = -1"
   sorry
@@ -374,26 +384,10 @@ proof -
     using to_int.simps(2) u_def  by presburger
 qed
 
-
-
-
-
-
 fun from_int::"int \<Rightarrow> uc_word" where 
 "from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
 
-lemma "(from_int 132) = [chr 49, chr 51, chr 50]" by auto
-lemma "to_int [chr 49, chr 49, chr 49] = 111" sorry
-
-
-
-
-
-lemma "to_int (from_int 132) = 132" by auto
-
-
-theorem "n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
-  
+theorem from_int:"n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
   sorry
 
 
