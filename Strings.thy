@@ -261,7 +261,7 @@ theorem to_code2: "w = [c] \<Longrightarrow> to_code w = int (as_nat c)"
 
 
 fun from_code:: "int \<Rightarrow> uc_word" where 
-  "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [chr (nat n)] else \<epsilon>)"
+  "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [(chr (nat n))] else \<epsilon>)"
 
 
 theorem from_code1: "0 \<le> n \<Longrightarrow> n \<le> 196607 \<Longrightarrow> from_code n = [(chr (nat n))]"
@@ -282,7 +282,7 @@ fun nat_pos::"nat \<Rightarrow> nat" where
 
 
 fun nat_to_digs::"nat \<Rightarrow> int list" where 
-  "nat_to_digs x = (if x\<le>9 then [int x] else (nat_to_digs (x div 10))@[int (x mod 10)])"
+  "nat_to_digs x = (if x\<le>9 then [(int x)] else (nat_to_digs (x div 10))@[(int (x mod 10))])"
 
 
 primrec all_digits::"int list \<Rightarrow> bool" where 
@@ -294,55 +294,21 @@ primrec all_digit_chrs::"uc_word \<Rightarrow> bool" where
 "all_digit_chrs (a#w) = (chr_is_digit a \<and> (all_digit_chrs w))"
 
 
-
 fun to_int::"uc_word \<Rightarrow> int" where
   "to_int \<epsilon> = -1" |
   "to_int (a#\<epsilon>) = (chr_to_digit a)" |
   "to_int w = (let n = (chr_to_digit (last w)) in let r= (to_int (butlast w)) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
-
-fun to_int_rev::"uc_word \<Rightarrow> int" where
-  "to_int_rev \<epsilon> = -1" |
-  "to_int_rev (a#\<epsilon>) = (chr_to_digit a)" |
-  "to_int_rev (a#w) = (let n = (chr_to_digit a) in let r= (to_int_rev w) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
-
-value "chr_to_digit (chr 49)"
-value "chr_to_digit (chr 50)"
-value "chr_to_digit (chr 51)"
-value "to_int [chr 51, chr 50, chr 49]"
-value "to_int_rev [chr 51, chr 50, chr 49]"
-
-lemma last_rev: "last (rev (a#w)) = a"
-  by (auto)
-  
-lemma butlast_rev: "butlast (rev (a#w)) = rev w"
-  by (auto)
   
 
 lemma to_digit_iff_is_digit: "chr_to_digit a \<ge> 0 \<longleftrightarrow> chr_is_digit a"
   by auto
  
-
 lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
   apply(auto)
   by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
 
-
 lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
   by (auto split: if_splits simp add: Let_def)
-
-
-  
-lemma A:"\<not>(chr_is_digit c) \<Longrightarrow> to_int (u\<cdot>[c]) = -1"
-  apply(cases rule: to_int.cases)
-  apply(simp_all)
-  using is_digit_iff_conv_positive apply auto
-  by (smt (verit) chr_to_digit.simps dbl_inc_simps(3) dbl_inc_simps(5) int_eq_iff_numeral last_ConsL neg_one_eq_numeral_iff numeral_Bit0 snoc_eq_iff_butlast to_code.simps(1) to_code2 to_int.elims)
-
-
-lemma B:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (a#w)" by auto
-lemma C:"\<not>chr_is_digit a \<Longrightarrow> \<not> all_digit_chrs (u\<cdot>[a]\<cdot>v)" 
-  apply(induct u)
-  by(auto)
   
 theorem to_int1:"w = \<epsilon> \<or> (w = u\<cdot>[c]\<cdot>v) \<and> \<not>(chr_is_digit c) \<Longrightarrow> to_int w = -1"
   sorry
@@ -387,9 +353,10 @@ qed
 fun from_int::"int \<Rightarrow> uc_word" where 
 "from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
 
-theorem from_int:"n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
+theorem from_int1:"n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
   sorry
 
+theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
 
 subsection "Model Proofs"
 
