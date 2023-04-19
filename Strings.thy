@@ -1,7 +1,7 @@
 theory Strings
   imports Core "strings/RegEx" "strings/Words"  "HOL-Library.List_Lexorder"
 begin
-declare [[show_sorts]]
+(* declare [[show_sorts]] *)
 
 no_notation List.length ("\<bar>_\<bar>")
 no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
@@ -309,9 +309,66 @@ lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> c
 
 lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
   by (auto split: if_splits simp add: Let_def)
-  
-theorem to_int1:"w = \<epsilon> \<or> (w = u\<cdot>[c]\<cdot>v) \<and> \<not>(chr_is_digit c) \<Longrightarrow> to_int w = -1"
-  sorry
+
+theorem to_int1': "length w = n \<Longrightarrow> to_int w = -1 \<longleftrightarrow> w = \<epsilon> \<or> (\<exists>c \<in> set w. \<not>chr_is_digit c)"
+proof (induction n arbitrary: w rule: less_induct)
+  case (less n)
+  show ?case
+  proof (cases w)
+    case Nil
+    then show ?thesis
+      by simp
+  next
+    case (Cons a w'')
+    note outer_Cons = Cons
+    show ?thesis
+    proof (cases w'')
+      case Nil
+      then show ?thesis  
+        using outer_Cons
+        by (metis is_digit_iff_conv_positive length_pos_if_in_set less_numeral_extra(3)
+            list.set_intros(1) list.size(3) set_ConsD to_int.simps(2))
+    next
+      case (Cons a' w')
+      have "((if 0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w'))) then 
+               10 * (to_int (butlast (a # a' # w'))) + chr_to_digit (last (a # a' # w')) 
+              else - 1) = - 1)
+            \<longleftrightarrow> (\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+      proof (cases "0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w')))")
+        case True
+        have "\<forall>c\<in>set (butlast (a # a' # w')). chr_is_digit c"
+          by (metis True diff_less in_set_butlastD length_butlast length_pos_if_in_set less.IH
+              less.prems less_minus_one_simps(1) less_numeral_extra(1) linorder_not_le local.Cons
+              outer_Cons)
+        moreover
+        have "chr_is_digit (last (a # a' # w'))"
+          using True chr_is_digit.simps by presburger
+        ultimately
+        have b: "(\<forall>c\<in>set (a # a' # w'). chr_is_digit c)"
+          using append_butlast_last_id[of "a # a' # w'"]
+          by (metis list.discI rotate1.simps(2) set_ConsD set_rotate1)
+        then have b: "\<not>(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+          by auto
+        then show ?thesis
+          using True by presburger
+      next
+        case False
+        then have "(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+          by (smt (verit, ccfv_SIG) One_nat_def butlast.simps(2) chr_is_digit.elims(1) diff_less 
+              in_set_butlastD last_in_set length_butlast length_greater_0_conv less(2) less.IH lessI 
+              list.discI list.set_intros(1) local.Cons outer_Cons to_int.elims)
+        then show ?thesis
+          using False by presburger
+      qed
+      then show ?thesis 
+        unfolding outer_Cons Cons
+        by (smt (verit, del_insts) to_int.simps(1) to_int.simps(3))
+    qed
+  qed
+qed
+
+theorem to_int1:"w = \<epsilon> \<or> w = u\<cdot>[c]\<cdot>v \<and> \<not>chr_is_digit c \<Longrightarrow> to_int w = -1"
+  using to_int1' by auto
   
 
 theorem to_int2: "w=[c] \<Longrightarrow> chr_is_digit c \<Longrightarrow> to_int w = chr_to_digit c"
