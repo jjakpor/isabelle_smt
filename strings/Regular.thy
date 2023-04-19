@@ -206,8 +206,8 @@ lemma deriv_inter: "deriv a (l1 \<inter> l2) = (deriv a l1) \<inter> (deriv a l2
   by (auto simp add: deriv_def)
 
 lemma deriv_concat:"deriv a (concat L R) = (concat (deriv a L) R) \<union> (concat (null L) (deriv a R))"
-  unfolding deriv_def concat_def null_def
-  apply auto
+  unfolding deriv_def concat_def null_def 
+  apply (auto)
   by (metis append_eq_Cons_conv)+
 
 lemma pow_not_epsilon_is_succ:"n>0 \<and> w \<in> pow R n \<Longrightarrow> \<exists>m. w \<in> pow R (Suc m)"

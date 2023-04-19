@@ -283,19 +283,31 @@ lemma indexof_Some_iff_factor: "\<exists>r. indexof w v 0 = Some r \<longleftrig
 
 
 lemma replace_epsilon: "replace w \<epsilon> u = u\<cdot>w"
-  apply(auto simp add: option.case_eq_if)
-  by (metis append_self_conv2 append_take_drop_id indexof_0.elims prefix_bot.bot_least take_eq_Nil2)
+proof -
+  have "take (indexof_0 w \<epsilon>) w \<cdot> u \<cdot> drop (indexof_0 w \<epsilon>) w = u \<cdot> w"
+    by (metis append_self_conv2 append_take_drop_id indexof_0.elims prefix_bot.bot_least take_eq_Nil2)
+  then show ?thesis
+    by (auto simp add: option.case_eq_if)
+qed
 
 lemma replace_id_if_not_contains: "\<not>contains w v \<Longrightarrow> replace w v u = w"
   using contains_iff_factor by auto
 
-
-theorem replace_factor: "contains w v \<Longrightarrow> \<exists>x y. (w= x\<cdot>v\<cdot>y \<and> replace w v u = x\<cdot>u\<cdot>y)"
-  apply(auto simp add: option.case_eq_if prefix_def )  
-   apply (metis append.assoc append_eq_conv_conj factor.elims(3) indexof_01 length_append)
-  by (simp add: contains_iff_factor)
-
-
+theorem replace_factor: 
+  assumes "contains w v"
+  shows "\<exists>x y. (w= x\<cdot>v\<cdot>y \<and> replace w v u = x\<cdot>u\<cdot>y)"
+proof (cases "sublist v w")
+  case True
+  then have "\<exists>x y. w = x \<cdot> v \<cdot> y \<and> 
+               take (indexof_0 w v) w \<cdot> u \<cdot> drop (indexof_0 w v + \<bar>v\<bar>) w = x \<cdot> u \<cdot> y"
+    by (metis append.assoc append_eq_conv_conj factor.elims(3) indexof_01 length_append)
+  then show ?thesis
+    using True by (simp add: option.case_eq_if prefix_def)
+next
+  case False
+  then show ?thesis 
+    using assms by (simp add: contains_iff_factor)
+qed
   
 theorem replace_first_factor: "contains w v \<Longrightarrow> \<exists>x y. replace w v u = x\<cdot>u\<cdot>y \<and> w = x\<cdot>v\<cdot>y \<and> (\<forall> x'. (\<exists>y'. w=x'\<cdot>v\<cdot>y') \<longrightarrow> \<bar>x\<bar> \<le> \<bar>x'\<bar>)"
 proof -
