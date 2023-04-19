@@ -252,16 +252,16 @@
                 "pairwise": false
             },
             "str.to_int": {
-              "mapsto:": "to_int",
-              "assoc": null,
-              "chainable": false,
-              "pairwise": false
+                "mapsto": "to_int",
+                "assoc": null,
+                "chainable": false,
+                "pairwise": false
             },
             "str.from_int": {
-              "mapsto:": "from_int",
-              "assoc": null,
-              "chainable": false,
-              "pairwise": false
+                "mapsto": "from_int",
+                "assoc": null,
+                "chainable": false,
+                "pairwise": false
             }
         },
         "Ints": {
