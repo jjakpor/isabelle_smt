@@ -423,4 +423,7 @@ theorem re_loop1:
 theorem re_loop2: "a > b \<Longrightarrow> lang (re_loop a b r) = {}" 
   by (simp add: re_loop_None_if)
 
+lemma "12::uc_char < 13::uc_char" 
+  sorry
+
 end
