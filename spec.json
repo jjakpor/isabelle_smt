@@ -250,7 +250,7 @@
                 "assoc": null,
                 "chainable": false,
                 "pairwise": false
-            }
+            },
             "str.to_int": {
               "mapsto:": "to_int",
               "assoc": null,
@@ -262,7 +262,7 @@
               "assoc": null,
               "chainable": false,
               "pairwise": false
-            },
+            }
         },
         "Ints": {
             "-": {
