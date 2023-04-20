@@ -421,16 +421,17 @@ proof -
     using to_int.simps(2) u_def  by presburger
 qed
 
-fun from_int::"int \<Rightarrow> uc_word" where 
-"from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
 
 fun from_nat::"nat \<Rightarrow> uc_word" where
   "from_nat n = (if (n \<le> 9) then [(nat_digit_to_chr n)] else (from_nat (n div 10))@[(nat_digit_to_chr (n mod 10))])"
 
+fun from_int::"int \<Rightarrow> uc_word" where 
+  "from_int i = (if i<0 then \<epsilon> else from_nat (nat i))"
+
 lemma chr_digit_inv2:fixes r::nat shows "r < 10 \<Longrightarrow> chr_to_digit (nat_digit_to_chr r) = (int r) \<and> (int r) \<ge> 0"
   by (auto)
 
-theorem "0 \<le> n \<Longrightarrow> from_nat n = w \<Longrightarrow> to_int w = int n" 
+theorem from_nat:"0 \<le> n \<Longrightarrow> from_nat n = w \<Longrightarrow> to_int w = int n" 
 proof (induct n arbitrary: w rule: less_induct )
   case ih:(less x)
   then show ?case proof (cases "x<10")
@@ -482,6 +483,10 @@ proof (induct n arbitrary: w rule: less_induct )
 qed
 
 
+theorem from_int1: "n\<ge>0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
+  apply(cases n)
+  using from_nat apply force
+  by simp
 
 theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
 
