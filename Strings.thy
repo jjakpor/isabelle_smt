@@ -221,6 +221,20 @@ fun digit_to_chr::"int \<Rightarrow> uc_chr" where
 )"
 
 
+fun nat_digit_to_chr::"nat \<Rightarrow> uc_chr" where
+"nat_digit_to_chr d = (
+  if d = 0 then (chr 48) else
+  if d = 1 then (chr 49) else
+  if d = 2 then  (chr 50) else
+  if d = 3 then  (chr 51) else
+  if d = 4 then  (chr 52) else
+  if d = 5 then  (chr 53) else
+  if d = 6 then  (chr 54) else
+  if d = 7 then  (chr 55) else
+  if d = 8 then  (chr 56) else
+  if d = 9 then  (chr 57) else (chr 0)
+)"
+
 
 lemma chr_digit_inv: "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) =  i"
   apply(auto) 
@@ -410,8 +424,64 @@ qed
 fun from_int::"int \<Rightarrow> uc_word" where 
 "from_int i = (if i<0 then \<epsilon> else map digit_to_chr (nat_to_digs (nat i)))"
 
-theorem from_int1:"n\<ge> 0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
-  sorry
+fun from_nat::"nat \<Rightarrow> uc_word" where
+  "from_nat n = (if (n \<le> 9) then [(nat_digit_to_chr n)] else (from_nat (n div 10))@[(nat_digit_to_chr (n mod 10))])"
+
+lemma chr_digit_inv2:fixes r::nat shows "r < 10 \<Longrightarrow> chr_to_digit (nat_digit_to_chr r) = (int r) \<and> (int r) \<ge> 0"
+  by (auto)
+
+theorem "0 \<le> n \<Longrightarrow> from_nat n = w \<Longrightarrow> to_int w = int n" 
+proof (induct n arbitrary: w rule: less_induct )
+  case ih:(less x)
+  then show ?case proof (cases "x<10")
+    case True
+    then show ?thesis proof -
+      assume c1:"x<10"
+      then have x:"from_nat x = [(nat_digit_to_chr x)]" by auto
+      then have "w = [(nat_digit_to_chr x)]" using ih by auto
+      then have "to_int w = to_int [(nat_digit_to_chr x)]" by simp
+      also have "... = chr_to_digit (nat_digit_to_chr x)" by simp
+      finally have "... = int x" using c1 by fastforce
+      then show ?thesis  using x ih by force
+    qed
+  next
+    case False
+    then show ?thesis proof -
+      assume "\<not>x<10"
+      then have c2:"9 < x" by auto
+
+      then have "\<exists>m r. x = 10*m + r \<and> m > 0 \<and> r < 10" by presburger
+      then obtain m r where n_eq:"x = 10*m +r \<and> m > 0 \<and> r < 10" by blast
+      moreover have r_eq:"r = x mod 10" using calculation by simp
+      ultimately have m_eq: "m = x div 10"  by auto
+
+      from c2 have "from_nat x = (from_nat (x div 10))@[(nat_digit_to_chr (x mod 10))]" by auto
+      then have from_nat_x_eq:"from_nat x = (from_nat m)@[(nat_digit_to_chr r)]" using r_eq m_eq by auto
+
+     have m_not_eps:"from_nat m \<noteq> \<epsilon>"
+        by (metis from_nat.elims self_append_conv2 snoc_eq_iff_butlast) 
+      have "[(nat_digit_to_chr r)] \<noteq> \<epsilon>" by simp
+      have r_conv:"chr_to_digit (nat_digit_to_chr r) = int r \<and> (int r) \<ge> 0" using n_eq chr_digit_inv2
+        by blast
+
+      have m_leq_x:"m<x"
+        by (simp add: n_eq)
+
+      have "to_int w = to_int ((from_nat m)@[(nat_digit_to_chr r)])" using from_nat_x_eq ih by auto
+      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= (to_int (from_nat m)) in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using  m_not_eps to_int.elims r_conv  
+        by (smt (verit, best) One_nat_def ih.hyps length_Cons less_imp_le_nat list.size(3) m_leq_x n_eq of_nat_0_le_iff of_nat_1 to_int.simps(2) to_int3)
+      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= int m in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using ih.hyps n_eq by fastforce
+      also have "... =  (let a = (int r) in let b= int m in if b \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using chr_digit_inv2  r_conv by presburger
+      also have "... =  (let a = (int r) in let b= int m in 10*b + a)" by auto
+      also have "... =  10*(int m) + (int r)" by auto
+
+      finally show ?thesis using n_eq 
+        by simp
+    qed
+  qed    
+qed
+
+
 
 theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
 
