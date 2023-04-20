@@ -236,53 +236,29 @@ fun nat_digit_to_chr::"nat \<Rightarrow> uc_chr" where
 )"
 
 
-lemma chr_digit_inv: "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) =  i"
-  apply(auto) 
-  by presburger
-
 
 fun chr_is_digit::"uc_chr \<Rightarrow> bool" where
   "chr_is_digit x = (chr_to_digit x \<ge> 0)"
 
-lemma chr_is_digit_iff: "chr_is_digit c \<longleftrightarrow> (48 \<le> (as_nat c) \<and> (as_nat c) \<le> 57)"
-  apply(auto simp add: Let_def)
-  by presburger
+
 
 fun is_digit::"uc_word \<Rightarrow> bool" where
   "is_digit (x#\<epsilon>) = chr_is_digit x"|
   "is_digit _ = False"
 
-lemma "is_digit x \<Longrightarrow> \<exists>c. x = [c]" 
-  apply(cases \<open>x\<close> rule: is_digit.cases)
-  by auto
 
-theorem is_digit: "is_digit x \<longleftrightarrow> (\<exists>c. x=(c#\<epsilon>) \<and> 48 \<le> as_nat c \<and> as_nat c \<le> 57)"
-  apply(cases \<open>x\<close> rule: is_digit.cases)
-  apply(auto)
-  using of_nat_le_iff apply fastforce
-  using of_nat_le_iff apply fastforce
-  by (smt (z3) int_eq_iff_numeral int_ops(2) numeral_Bit0 numeral_Bit1 numerals(1) of_nat_mono)
 
 fun to_code::"uc_word \<Rightarrow> int" where
   "to_code (x#\<epsilon>) = chr_to_code x" |
   "to_code _ = -1"
 
-theorem to_code1: "\<bar>w\<bar> \<noteq> 1 \<Longrightarrow> to_code w = -1"
-  apply(cases \<open>w\<close> rule: to_code.cases) by auto
-
-theorem to_code2: "w = [c] \<Longrightarrow> to_code w = int (as_nat c)"
-  apply(cases \<open>w\<close> rule: to_code.cases) by auto
 
 
 fun from_code:: "int \<Rightarrow> uc_word" where 
   "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [(chr (nat n))] else \<epsilon>)"
 
 
-theorem from_code1: "0 \<le> n \<Longrightarrow> n \<le> 196607 \<Longrightarrow> from_code n = [(chr (nat n))]"
-  by auto
 
-theorem from_code2: "n<0 \<or>  196607 < n \<Longrightarrow> from_code n = \<epsilon>"
-  by auto
 
 
 fun digs_to_int::"int list \<Rightarrow> int" where
@@ -313,182 +289,13 @@ fun to_int::"uc_word \<Rightarrow> int" where
   "to_int (a#\<epsilon>) = (chr_to_digit a)" |
   "to_int w = (let n = (chr_to_digit (last w)) in let r= (to_int (butlast w)) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
   
-
-lemma to_digit_iff_is_digit: "chr_to_digit a \<ge> 0 \<longleftrightarrow> chr_is_digit a"
-  by auto
- 
-lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
-  apply(auto)
-  by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
-
-lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
-  by (auto split: if_splits simp add: Let_def)
-
-theorem to_int1': "length w = n \<Longrightarrow> to_int w = -1 \<longleftrightarrow> w = \<epsilon> \<or> (\<exists>c \<in> set w. \<not>chr_is_digit c)"
-proof (induction n arbitrary: w rule: less_induct)
-  case (less n)
-  show ?case
-  proof (cases w)
-    case Nil
-    then show ?thesis
-      by simp
-  next
-    case (Cons a w'')
-    note outer_Cons = Cons
-    show ?thesis
-    proof (cases w'')
-      case Nil
-      then show ?thesis  
-        using outer_Cons
-        by (metis is_digit_iff_conv_positive length_pos_if_in_set less_numeral_extra(3)
-            list.set_intros(1) list.size(3) set_ConsD to_int.simps(2))
-    next
-      case (Cons a' w')
-      have "((if 0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w'))) then 
-               10 * (to_int (butlast (a # a' # w'))) + chr_to_digit (last (a # a' # w')) 
-              else - 1) = - 1)
-            \<longleftrightarrow> (\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
-      proof (cases "0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w')))")
-        case True
-        have "\<forall>c\<in>set (butlast (a # a' # w')). chr_is_digit c"
-          by (metis True diff_less in_set_butlastD length_butlast length_pos_if_in_set less.IH
-              less.prems less_minus_one_simps(1) less_numeral_extra(1) linorder_not_le local.Cons
-              outer_Cons)
-        moreover
-        have "chr_is_digit (last (a # a' # w'))"
-          using True chr_is_digit.simps by presburger
-        ultimately
-        have b: "(\<forall>c\<in>set (a # a' # w'). chr_is_digit c)"
-          using append_butlast_last_id[of "a # a' # w'"]
-          by (metis list.discI rotate1.simps(2) set_ConsD set_rotate1)
-        then have b: "\<not>(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
-          by auto
-        then show ?thesis
-          using True by presburger
-      next
-        case False
-        then have "(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
-          by (smt (verit, ccfv_SIG) One_nat_def butlast.simps(2) chr_is_digit.elims(1) diff_less 
-              in_set_butlastD last_in_set length_butlast length_greater_0_conv less(2) less.IH lessI 
-              list.discI list.set_intros(1) local.Cons outer_Cons to_int.elims)
-        then show ?thesis
-          using False by presburger
-      qed
-      then show ?thesis 
-        unfolding outer_Cons Cons
-        by (smt (verit, del_insts) to_int.simps(1) to_int.simps(3))
-    qed
-  qed
-qed
-
-theorem to_int1:"w = \<epsilon> \<or> w = u\<cdot>[c]\<cdot>v \<and> \<not>chr_is_digit c \<Longrightarrow> to_int w = -1"
-  using to_int1' by auto
-  
-
-theorem to_int2: "w=[c] \<Longrightarrow> chr_is_digit c \<Longrightarrow> to_int w = chr_to_digit c"
-  by (auto simp add: Let_def)
-
-
-theorem to_int3: "w=u\<cdot>v \<Longrightarrow> \<bar>v\<bar>=1 \<Longrightarrow> to_int u \<ge> 0 \<Longrightarrow> to_int v \<ge> 0 \<Longrightarrow> to_int w = 10*(to_int u) + (to_int v)"
-proof -
-  assume a1:"w=u\<cdot>v"
-  assume a2:"\<bar>v\<bar>=1"
-  assume a3:"to_int u \<ge> 0"
-  assume a4:"to_int v \<ge> 0"
-  
-  from a1 a2 have p:"\<exists>c. w = u\<cdot>[c]"
-    by (simp add: length_Suc_conv)
-  then obtain c where c_def:"w = u\<cdot>[c]" by fastforce
-
-  from p a1 a2 have u_def:"v = [c]"  by (simp add: c_def)
-  then have "to_int [c] \<ge> 0"  using a4 by blast
-  then have c_digit: "chr_is_digit c" using to_int_chr_iff u_def a3 by blast
-
-  from a3  have u:"u \<noteq> \<epsilon>"  by fastforce
-  then have w_len:"\<bar>w\<bar>>1" using c_def by auto
-  then have x:"\<bar>u\<cdot>[c]\<bar>>1"  using c_def by blast
-  then have x:"(\<forall>a. u\<cdot>[c] \<noteq> a#\<epsilon>) \<and>  u\<cdot>[c] \<noteq> \<epsilon>"  by simp
-
-
-  from a1 u_def have "to_int w  = to_int (u\<cdot>[c])" by simp
-  also have "... = (let n = (chr_to_digit (last (u\<cdot>[c]))) in let r= (to_int (butlast (u\<cdot>[c]))) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
-    using x to_int.elims   by metis
-  also have "... = (let n = (chr_to_digit c) in let r= (to_int u) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
-    by simp
-  also have "... = 10*(to_int u) + (chr_to_digit c)" using c_digit by (simp add: a3)
-
-  finally show ?thesis 
-    using to_int.simps(2) u_def  by presburger
-qed
-
-
 fun from_nat::"nat \<Rightarrow> uc_word" where
   "from_nat n = (if (n \<le> 9) then [(nat_digit_to_chr n)] else (from_nat (n div 10))@[(nat_digit_to_chr (n mod 10))])"
 
 fun from_int::"int \<Rightarrow> uc_word" where 
   "from_int i = (if i<0 then \<epsilon> else from_nat (nat i))"
 
-lemma chr_digit_inv2:fixes r::nat shows "r < 10 \<Longrightarrow> chr_to_digit (nat_digit_to_chr r) = (int r) \<and> (int r) \<ge> 0"
-  by (auto)
 
-theorem from_nat:"0 \<le> n \<Longrightarrow> from_nat n = w \<Longrightarrow> to_int w = int n" 
-proof (induct n arbitrary: w rule: less_induct )
-  case ih:(less x)
-  then show ?case proof (cases "x<10")
-    case True
-    then show ?thesis proof -
-      assume c1:"x<10"
-      then have x:"from_nat x = [(nat_digit_to_chr x)]" by auto
-      then have "w = [(nat_digit_to_chr x)]" using ih by auto
-      then have "to_int w = to_int [(nat_digit_to_chr x)]" by simp
-      also have "... = chr_to_digit (nat_digit_to_chr x)" by simp
-      finally have "... = int x" using c1 by fastforce
-      then show ?thesis  using x ih by force
-    qed
-  next
-    case False
-    then show ?thesis proof -
-      assume "\<not>x<10"
-      then have c2:"9 < x" by auto
-
-      then have "\<exists>m r. x = 10*m + r \<and> m > 0 \<and> r < 10" by presburger
-      then obtain m r where n_eq:"x = 10*m +r \<and> m > 0 \<and> r < 10" by blast
-      moreover have r_eq:"r = x mod 10" using calculation by simp
-      ultimately have m_eq: "m = x div 10"  by auto
-
-      from c2 have "from_nat x = (from_nat (x div 10))@[(nat_digit_to_chr (x mod 10))]" by auto
-      then have from_nat_x_eq:"from_nat x = (from_nat m)@[(nat_digit_to_chr r)]" using r_eq m_eq by auto
-
-     have m_not_eps:"from_nat m \<noteq> \<epsilon>"
-        by (metis from_nat.elims self_append_conv2 snoc_eq_iff_butlast) 
-      have "[(nat_digit_to_chr r)] \<noteq> \<epsilon>" by simp
-      have r_conv:"chr_to_digit (nat_digit_to_chr r) = int r \<and> (int r) \<ge> 0" using n_eq chr_digit_inv2
-        by blast
-
-      have m_leq_x:"m<x"
-        by (simp add: n_eq)
-
-      have "to_int w = to_int ((from_nat m)@[(nat_digit_to_chr r)])" using from_nat_x_eq ih by auto
-      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= (to_int (from_nat m)) in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using  m_not_eps to_int.elims r_conv  
-        by (smt (verit, best) One_nat_def ih.hyps length_Cons less_imp_le_nat list.size(3) m_leq_x n_eq of_nat_0_le_iff of_nat_1 to_int.simps(2) to_int3)
-      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= int m in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using ih.hyps n_eq by fastforce
-      also have "... =  (let a = (int r) in let b= int m in if b \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using chr_digit_inv2  r_conv by presburger
-      also have "... =  (let a = (int r) in let b= int m in 10*b + a)" by auto
-      also have "... =  10*(int m) + (int r)" by auto
-
-      finally show ?thesis using n_eq 
-        by simp
-    qed
-  qed    
-qed
-
-
-theorem from_int1: "n\<ge>0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
-  apply(cases n)
-  using from_nat apply force
-  by simp
-
-theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
 
 subsection "Model Proofs"
 
@@ -503,11 +310,6 @@ abbreviation smallest_int where
 
 abbreviation shortest_word where
   "shortest_word w P \<equiv> P w \<and> (\<forall>w'. P w' \<longrightarrow> \<bar>w\<bar> \<le> \<bar>w'\<bar>)"
-
-
-theorem from_int1:"n< 0 \<Longrightarrow> from_int n = \<epsilon>" by(auto)
-
-
 
 theorem "UNIV = UC"  
   by (simp add: UC_def)
@@ -793,6 +595,196 @@ theorem re_loop2: "a > b \<Longrightarrow> lang (re_loop a b r) = {}"
 
 subsubsection "String Number Conversions"
 
+
+lemma chr_digit_inv: "i\<in>{0..9} \<Longrightarrow> chr_to_digit (digit_to_chr i) =  i"
+  apply(auto) 
+  by presburger
+
+
+theorem is_digit: "is_digit x \<longleftrightarrow> (\<exists>c. x=(c#\<epsilon>) \<and> 48 \<le> as_nat c \<and> as_nat c \<le> 57)"
+  apply(cases \<open>x\<close> rule: is_digit.cases)
+  apply(auto)
+  using of_nat_le_iff apply fastforce
+  using of_nat_le_iff apply fastforce
+  by (smt (z3) int_eq_iff_numeral int_ops(2) numeral_Bit0 numeral_Bit1 numerals(1) of_nat_mono)
+
+theorem to_code1: "\<bar>w\<bar> \<noteq> 1 \<Longrightarrow> to_code w = -1"
+  apply(cases \<open>w\<close> rule: to_code.cases) by auto
+
+theorem to_code2: "w = [c] \<Longrightarrow> to_code w = int (as_nat c)"
+  apply(cases \<open>w\<close> rule: to_code.cases) by auto
+
+theorem from_code1: "0 \<le> n \<Longrightarrow> n \<le> 196607 \<Longrightarrow> from_code n = [(chr (nat n))]"
+  by auto
+
+theorem from_code2: "n<0 \<or>  196607 < n \<Longrightarrow> from_code n = \<epsilon>"
+  by auto
+
+ 
+lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
+  apply(auto)
+  by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
+
+lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
+  by (auto split: if_splits simp add: Let_def)
+
+theorem to_int1': "length w = n \<Longrightarrow> to_int w = -1 \<longleftrightarrow> w = \<epsilon> \<or> (\<exists>c \<in> set w. \<not>chr_is_digit c)"
+proof (induction n arbitrary: w rule: less_induct)
+  case (less n)
+  show ?case
+  proof (cases w)
+    case Nil
+    then show ?thesis
+      by simp
+  next
+    case (Cons a w'')
+    note outer_Cons = Cons
+    show ?thesis
+    proof (cases w'')
+      case Nil
+      then show ?thesis  
+        using outer_Cons
+        by (metis is_digit_iff_conv_positive length_pos_if_in_set less_numeral_extra(3)
+            list.set_intros(1) list.size(3) set_ConsD to_int.simps(2))
+    next
+      case (Cons a' w')
+      have "((if 0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w'))) then 
+               10 * (to_int (butlast (a # a' # w'))) + chr_to_digit (last (a # a' # w')) 
+              else - 1) = - 1)
+            \<longleftrightarrow> (\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+      proof (cases "0 \<le> chr_to_digit (last (a # a' # w')) \<and> 0 \<le> (to_int (butlast (a # a' # w')))")
+        case True
+        have "\<forall>c\<in>set (butlast (a # a' # w')). chr_is_digit c"
+          by (metis True diff_less in_set_butlastD length_butlast length_pos_if_in_set less.IH
+              less.prems less_minus_one_simps(1) less_numeral_extra(1) linorder_not_le local.Cons
+              outer_Cons)
+        moreover
+        have "chr_is_digit (last (a # a' # w'))"
+          using True chr_is_digit.simps by presburger
+        ultimately
+        have b: "(\<forall>c\<in>set (a # a' # w'). chr_is_digit c)"
+          using append_butlast_last_id[of "a # a' # w'"]
+          by (metis list.discI rotate1.simps(2) set_ConsD set_rotate1)
+        then have b: "\<not>(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+          by auto
+        then show ?thesis
+          using True by presburger
+      next
+        case False
+        then have "(\<exists>c\<in>set (a # a' # w'). \<not> chr_is_digit c)"
+          by (smt (verit, ccfv_SIG) One_nat_def butlast.simps(2) chr_is_digit.elims(1) diff_less 
+              in_set_butlastD last_in_set length_butlast length_greater_0_conv less(2) less.IH lessI 
+              list.discI list.set_intros(1) local.Cons outer_Cons to_int.elims)
+        then show ?thesis
+          using False by presburger
+      qed
+      then show ?thesis 
+        unfolding outer_Cons Cons
+        by (smt (verit, del_insts) to_int.simps(1) to_int.simps(3))
+    qed
+  qed
+qed
+
+theorem to_int1:"w = \<epsilon> \<or> w = u\<cdot>[c]\<cdot>v \<and> \<not>chr_is_digit c \<Longrightarrow> to_int w = -1"
+  using to_int1' by auto
+  
+
+theorem to_int2: "w=[c] \<Longrightarrow> chr_is_digit c \<Longrightarrow> to_int w = chr_to_digit c"
+  by (auto simp add: Let_def)
+
+
+theorem to_int3: "w=u\<cdot>v \<Longrightarrow> \<bar>v\<bar>=1 \<Longrightarrow> to_int u \<ge> 0 \<Longrightarrow> to_int v \<ge> 0 \<Longrightarrow> to_int w = 10*(to_int u) + (to_int v)"
+proof -
+  assume a1:"w=u\<cdot>v"
+  assume a2:"\<bar>v\<bar>=1"
+  assume a3:"to_int u \<ge> 0"
+  assume a4:"to_int v \<ge> 0"
+  
+  from a1 a2 have p:"\<exists>c. w = u\<cdot>[c]"
+    by (simp add: length_Suc_conv)
+  then obtain c where c_def:"w = u\<cdot>[c]" by fastforce
+
+  from p a1 a2 have u_def:"v = [c]"  by (simp add: c_def)
+  then have "to_int [c] \<ge> 0"  using a4 by blast
+  then have c_digit: "chr_is_digit c" using to_int_chr_iff u_def a3 by blast
+
+  from a3  have u:"u \<noteq> \<epsilon>"  by fastforce
+  then have w_len:"\<bar>w\<bar>>1" using c_def by auto
+  then have x:"\<bar>u\<cdot>[c]\<bar>>1"  using c_def by blast
+  then have x:"(\<forall>a. u\<cdot>[c] \<noteq> a#\<epsilon>) \<and>  u\<cdot>[c] \<noteq> \<epsilon>"  by simp
+
+
+  from a1 u_def have "to_int w  = to_int (u\<cdot>[c])" by simp
+  also have "... = (let n = (chr_to_digit (last (u\<cdot>[c]))) in let r= (to_int (butlast (u\<cdot>[c]))) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
+    using x to_int.elims   by metis
+  also have "... = (let n = (chr_to_digit c) in let r= (to_int u) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
+    by simp
+  also have "... = 10*(to_int u) + (chr_to_digit c)" using c_digit by (simp add: a3)
+
+  finally show ?thesis 
+    using to_int.simps(2) u_def  by presburger
+qed
+
+lemma chr_nat_digit_inv:fixes r::nat shows "r < 10 \<Longrightarrow> chr_to_digit (nat_digit_to_chr r) = (int r) \<and> (int r) \<ge> 0"
+  by (auto)
+
+theorem from_nat:"0 \<le> n \<Longrightarrow> from_nat n = w \<Longrightarrow> to_int w = int n" 
+proof (induct n arbitrary: w rule: less_induct )
+  case ih:(less x)
+  then show ?case proof (cases "x<10")
+    case True
+    then show ?thesis proof -
+      assume c1:"x<10"
+      then have x:"from_nat x = [(nat_digit_to_chr x)]" by auto
+      then have "w = [(nat_digit_to_chr x)]" using ih by auto
+      then have "to_int w = to_int [(nat_digit_to_chr x)]" by simp
+      also have "... = chr_to_digit (nat_digit_to_chr x)" by simp
+      finally have "... = int x" using c1 by fastforce
+      then show ?thesis  using x ih by force
+    qed
+  next
+    case False
+    then show ?thesis proof -
+      assume "\<not>x<10"
+      then have c2:"9 < x" by auto
+
+      then have "\<exists>m r. x = 10*m + r \<and> m > 0 \<and> r < 10" by presburger
+      then obtain m r where n_eq:"x = 10*m +r \<and> m > 0 \<and> r < 10" by blast
+      moreover have r_eq:"r = x mod 10" using calculation by simp
+      ultimately have m_eq: "m = x div 10"  by auto
+
+      from c2 have "from_nat x = (from_nat (x div 10))@[(nat_digit_to_chr (x mod 10))]" by auto
+      then have from_nat_x_eq:"from_nat x = (from_nat m)@[(nat_digit_to_chr r)]" using r_eq m_eq by auto
+
+     have m_not_eps:"from_nat m \<noteq> \<epsilon>"
+        by (metis from_nat.elims self_append_conv2 snoc_eq_iff_butlast) 
+      have "[(nat_digit_to_chr r)] \<noteq> \<epsilon>" by simp
+      have r_conv:"chr_to_digit (nat_digit_to_chr r) = int r \<and> (int r) \<ge> 0" using n_eq chr_nat_digit_inv
+        by blast
+
+      have m_leq_x:"m<x"
+        by (simp add: n_eq)
+
+      have "to_int w = to_int ((from_nat m)@[(nat_digit_to_chr r)])" using from_nat_x_eq ih by auto
+      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= (to_int (from_nat m)) in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using  m_not_eps to_int.elims r_conv  
+        by (smt (verit, best) One_nat_def ih.hyps length_Cons less_imp_le_nat list.size(3) m_leq_x n_eq of_nat_0_le_iff of_nat_1 to_int.simps(2) to_int3)
+      also have  "... = (let a = (chr_to_digit  (nat_digit_to_chr r)) in let b= int m in if a \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using ih.hyps n_eq by fastforce
+      also have "... =  (let a = (int r) in let b= int m in if b \<ge> 0 \<and> b \<ge> 0 then 10*b + a else -1)" using chr_nat_digit_inv  r_conv by presburger
+      also have "... =  (let a = (int r) in let b= int m in 10*b + a)" by auto
+      also have "... =  10*(int m) + (int r)" by auto
+
+      finally show ?thesis using n_eq 
+        by simp
+    qed
+  qed    
+qed
+
+theorem from_int1: "n\<ge>0 \<Longrightarrow> from_int n = w \<Longrightarrow> to_int w = n" 
+  apply(cases n)
+  using from_nat apply force
+  by simp
+
+theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
 
 
 
