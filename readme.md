@@ -57,6 +57,11 @@ Currently, only the [Core](https://smtlib.cs.uiowa.edu/theories-Core.shtml) and 
 | `(re.range String String RegLan)`                  | ✅   |
 | `((_ re.^ n) RegLan RegLan)`                       | ✅   |
 | `((_ re.loop n₁ n₂) RegLan RegLan)`                | ✅   |
+| `(str.is_digit String Bool)`                       | ✅   |
+| `(str.to_code String Int)`                         | ✅   |
+| `(str.from_code Int String)`                       | ✅   |
+| `(str.to_int String Int)`                          | ✅   |
+| `(str.from_int Int String)`                        | ✅   |
 
 ## File Structure
 
