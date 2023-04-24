@@ -1,7 +1,6 @@
 theory Strings
   imports Core "strings/RegEx" "strings/Words"  "HOL-Library.List_Lexorder"
 begin
-(* declare [[show_sorts]] *)
 
 no_notation List.length ("\<bar>_\<bar>")
 no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
@@ -14,29 +13,20 @@ subsection "Definition of Unicode characters"
 
 text "The standard defines two sorts, String and RegLan. 
 In the standard model, the domain of these sorts are fixed as the set of all words over the 
-alphabet of unicode code points from 0 to 196606, and the powerset of this set, respectively.
-We define the set of unicode code points as the ring of integers up to 196606.
+alphabet of unicode code points from 0 to 196607, and the powerset of this set, respectively.
+We define the set of unicode code points as the subsets of integers from 0 up to 196607.
 Words as lists over this alphabet (type) and regular languages as regular expression over the
 alphabet, equipped with a function that maps expression to actual languages."
 
-(*
-Other approach:
-
-datatype unicode_char = Char int
-fun Chr::"int \<Rightarrow> unicode_char"
-  where "Chr x = (if 0\<ge> x \<and>  x \<le> 196607 then Char x else undefined)"
-fun Cnat::"unicode_char \<Rightarrow> int"
-  where "Cnat (Char c) = (if 0\<ge> c \<and> c \<le> 196607 then c else undefined)"
-*)
 
 typedef uc_chr = "{(0::nat)..(196607)}" morphisms as_nat chr by auto
-
 setup_lifting type_definition_uc_chr
 
 
 lemma [code abstype]: "chr (as_nat x) = x" by (rule as_nat_inverse)
 code_datatype chr
-lemma[code]: "as_nat (chr x) = x" sorry
+
+
 
 instantiation uc_chr::one begin  
 lift_definition one_chr::uc_chr is "1" by auto
@@ -92,9 +82,9 @@ definition UC:: "uc_word set" where "UC = {w. True}"
 
 subsection "Interpretation of the SMT-LIB theory of strings symbols"
 
-text "In the following, we interprete all symbols of the SMT-LIB theory of strings.
-The interprations are based on primitive functions implemented on lists and regular expressions.
-Note that the symbols are not identicaly to the one state in the SMT-LIB theory due to syntactic
+text "In the following, we interpret all symbols of the SMT-LIB theory of strings.
+The interpretations are based on primitive functions implemented on lists and regular expressions.
+Note that the symbols are not identical to the one state in the SMT-LIB theory due to syntactic
 restrictions of Isabelle/HOL. However, there is a one to one mapping between the symbols used here
 and the symbols used in SMT-LIB. This mapping is specified in 'spec.json'."
 
@@ -121,9 +111,7 @@ abbreviation str_contains:: "uc_word \<Rightarrow> uc_word \<Rightarrow> bool" w
   "str_contains \<equiv> Words.contains"
 
 
-(*fun str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
-  "str_indexof w v i = (if i \<ge> 0 \<and> (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (str_indexof_nat w v (Int.nat i)) else -1)"*)
-
+(* This is a corrected version of str.indexof, the original one is not well-defined (see model proof below)*)
 abbreviation str_indexof:: "uc_word \<Rightarrow> uc_word \<Rightarrow> int \<Rightarrow> int" where 
   "str_indexof w v i \<equiv> (if i\<ge>0 \<and>  (str_contains (str_substr w i \<bar>w\<bar>) v) \<and> i\<le>\<bar>w\<bar> then Int.int (indexof_nat w v (Int.nat i)) else -1)"
 
@@ -152,7 +140,7 @@ abbreviation re_allchar:: "uc_regex" where
   "re_allchar \<equiv> regex.Any"
 
 abbreviation re_all::"uc_regex" where
-"re_all \<equiv> re_star re_allchar"
+  "re_all \<equiv> re_star re_allchar"
 
 abbreviation re_concat:: "uc_regex \<Rightarrow> uc_regex \<Rightarrow> uc_regex" where 
   "re_concat \<equiv> RegEx.re_concat"
@@ -193,7 +181,7 @@ abbreviation re_loop:: "nat \<Rightarrow> nat \<Rightarrow> uc_regex \<Rightarro
 fun chr_to_code::"uc_chr \<Rightarrow> int" where "chr_to_code c = int (as_nat c)"
 
 fun chr_to_digit::"uc_chr \<Rightarrow> int" where
-"chr_to_digit c = (let v = chr_to_code c in
+  "chr_to_digit c = (let v = chr_to_code c in
   if v = 48 then 0 else 
   if v = 49 then 1 else 
   if v = 50 then 2 else 
@@ -207,7 +195,7 @@ fun chr_to_digit::"uc_chr \<Rightarrow> int" where
 )"
 
 fun digit_to_chr::"int \<Rightarrow> uc_chr" where
-"digit_to_chr d = (
+  "digit_to_chr d = (
   if d = 0 then (chr 48) else
   if d = 1 then (chr 49) else
   if d = 2 then  (chr 50) else
@@ -222,7 +210,7 @@ fun digit_to_chr::"int \<Rightarrow> uc_chr" where
 
 
 fun nat_digit_to_chr::"nat \<Rightarrow> uc_chr" where
-"nat_digit_to_chr d = (
+  "nat_digit_to_chr d = (
   if d = 0 then (chr 48) else
   if d = 1 then (chr 49) else
   if d = 2 then  (chr 50) else
@@ -253,12 +241,8 @@ fun to_code::"uc_word \<Rightarrow> int" where
   "to_code _ = -1"
 
 
-
 fun from_code:: "int \<Rightarrow> uc_word" where 
   "from_code n = (if 0\<le> n \<and> n \<le> 196607 then [(chr (nat n))] else \<epsilon>)"
-
-
-
 
 
 fun digs_to_int::"int list \<Rightarrow> int" where
@@ -268,7 +252,7 @@ fun digs_to_int::"int list \<Rightarrow> int" where
 
 
 fun nat_pos::"nat \<Rightarrow> nat" where 
-"nat_pos n = (let d = (n div 10) in if d = 0 then 1 else 1+(nat_pos d))"
+  "nat_pos n = (let d = (n div 10) in if d = 0 then 1 else 1+(nat_pos d))"
 
 
 fun nat_to_digs::"nat \<Rightarrow> int list" where 
@@ -276,19 +260,19 @@ fun nat_to_digs::"nat \<Rightarrow> int list" where
 
 
 primrec all_digits::"int list \<Rightarrow> bool" where 
-"all_digits \<epsilon> = True" |
-"all_digits (x#xs) = (0 \<le> x \<and> x\<le>9 \<and> all_digits xs)"
+  "all_digits \<epsilon> = True" |
+  "all_digits (x#xs) = (0 \<le> x \<and> x\<le>9 \<and> all_digits xs)"
 
 primrec all_digit_chrs::"uc_word \<Rightarrow> bool" where
-"all_digit_chrs \<epsilon> = True" |
-"all_digit_chrs (a#w) = (chr_is_digit a \<and> (all_digit_chrs w))"
+  "all_digit_chrs \<epsilon> = True" |
+  "all_digit_chrs (a#w) = (chr_is_digit a \<and> (all_digit_chrs w))"
 
 
 fun to_int::"uc_word \<Rightarrow> int" where
   "to_int \<epsilon> = -1" |
   "to_int (a#\<epsilon>) = (chr_to_digit a)" |
   "to_int w = (let n = (chr_to_digit (last w)) in let r= (to_int (butlast w)) in if n \<ge> 0 \<and> r \<ge> 0 then 10*r + n else -1)"
-  
+
 fun from_nat::"nat \<Rightarrow> uc_word" where
   "from_nat n = (if (n \<le> 9) then [(nat_digit_to_chr n)] else (from_nat (n div 10))@[(nat_digit_to_chr (n mod 10))])"
 
@@ -299,8 +283,8 @@ fun from_int::"int \<Rightarrow> uc_word" where
 
 subsection "Model Proofs"
 
-text "We shows that our interpretation of the functions satisfy all conditions stated by the SMT-LIB theory 
-of strings, which thus proofs it to be equivalent to the standard model of the theory."
+text "We shows that our interpretation of the symbols satisfy all conditions stated by the SMT-LIB theory 
+of strings."
 
 abbreviation smallest_set where
   "smallest_set K P \<equiv> P K \<and> (\<forall>K'. P K' \<longrightarrow> K \<subseteq> K')"
@@ -326,11 +310,6 @@ subsubsection "Length"
 
 text "Some lemmas about string length used later on"
 
-lemma length_ge_0: "\<bar>w\<bar> \<ge> 0" 
-  by auto
-
-lemma length_less_0: "\<not>\<bar>w\<bar> < 0" 
-  by auto
 
 lemma length_int_nat: "\<bar>w\<bar> = int (length w)" 
   by auto
@@ -370,7 +349,7 @@ lemma substr_factor_equal:
 theorem str_substr1:
   assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
   shows "\<exists>!v. str_substr w m n = v \<and> (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and>  \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
-  proof -
+proof -
   from assms have "nat m < (length w) \<and> nat m \<le> nat m + nat n" by auto
   then have "\<exists>!v. (w[nat m; nat m + nat n]) = v \<and>
              (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = nat m \<and>
@@ -408,7 +387,7 @@ theorem str_suffix: "str_suffixof v w \<longleftrightarrow> (\<exists>x. w = x\<
 
 theorem str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
   by (auto simp add: contains_iff_factor sublist_def)
-  
+
 
 subsubsection "Searching and replacing (str.indexof, str.replace variants)"
 
@@ -489,10 +468,10 @@ theorem str_replace2:
 
 subsubsection "Regular languages"
 
-text "We represent regular languages using regular expression accompanied by a lang function that
+text "We represent regular languages using regular expression accompanied by a `lang` function that
 maps expression to languages."
 
-text "We first who that this lang operator maps into the powerset of all unicode strings"
+text "We first who that this `lang` operator maps into the power set of all unicode strings"
 
 theorem re_lang_unicode: "range (lang::(uc_chr regex \<Rightarrow> uc_chr word set)) \<subseteq> Pow UC"
   using UC_def by force
@@ -501,7 +480,7 @@ theorem str_to_re: "lang (str_to_re w) = {w}" by auto
 
 theorem str_in_re: "str_in_re w R \<longleftrightarrow> w \<in> (lang R)" 
   by (auto simp add: derivw_nullable_contains contains_derivw_nullable)
-  
+
 
 paragraph "Regular Operators"
 
@@ -565,9 +544,9 @@ theorem re_plus: "lang (re_plus r) = lang (re_concat r (re_star r))"
   by auto
 
 theorem re_range1: "\<bar>l\<bar> = 1 \<and> \<bar>u\<bar> = 1 \<Longrightarrow> lang (re_range l u) = {v| v. l \<le> v \<and>  v\<le>u \<and> \<bar>v\<bar> = 1}" 
- apply(cases \<open>(l, u)\<close> rule: re_range.cases)
-      apply (auto split: if_splits)
-   apply (metis (no_types, lifting) Cons_less_Cons length_0_conv length_Suc_conv linorder_not_le)
+  apply(cases \<open>(l, u)\<close> rule: re_range.cases)
+  apply (auto split: if_splits)
+  apply (metis (no_types, lifting) Cons_less_Cons length_0_conv length_Suc_conv linorder_not_le)
   by (meson Cons_le_Cons dual_order.trans)
 
 theorem re_range2: "\<bar>l\<bar> \<noteq> 1 \<or> \<bar>u\<bar> \<noteq> 1 \<Longrightarrow> lang (re_range l u) = {}" 
@@ -620,7 +599,7 @@ theorem from_code1: "0 \<le> n \<Longrightarrow> n \<le> 196607 \<Longrightarrow
 theorem from_code2: "n<0 \<or>  196607 < n \<Longrightarrow> from_code n = \<epsilon>"
   by auto
 
- 
+
 lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
   apply(auto)
   by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
@@ -687,7 +666,7 @@ qed
 
 theorem to_int1:"w = \<epsilon> \<or> w = u\<cdot>[c]\<cdot>v \<and> \<not>chr_is_digit c \<Longrightarrow> to_int w = -1"
   using to_int1' by auto
-  
+
 
 theorem to_int2: "w=[c] \<Longrightarrow> chr_is_digit c \<Longrightarrow> to_int w = chr_to_digit c"
   by (auto simp add: Let_def)
@@ -699,7 +678,7 @@ proof -
   assume a2:"\<bar>v\<bar>=1"
   assume a3:"to_int u \<ge> 0"
   assume a4:"to_int v \<ge> 0"
-  
+
   from a1 a2 have p:"\<exists>c. w = u\<cdot>[c]"
     by (simp add: length_Suc_conv)
   then obtain c where c_def:"w = u\<cdot>[c]" by fastforce
@@ -756,7 +735,7 @@ proof (induct n arbitrary: w rule: less_induct )
       from c2 have "from_nat x = (from_nat (x div 10))@[(nat_digit_to_chr (x mod 10))]" by auto
       then have from_nat_x_eq:"from_nat x = (from_nat m)@[(nat_digit_to_chr r)]" using r_eq m_eq by auto
 
-     have m_not_eps:"from_nat m \<noteq> \<epsilon>"
+      have m_not_eps:"from_nat m \<noteq> \<epsilon>"
         by (metis from_nat.elims self_append_conv2 snoc_eq_iff_butlast) 
       have "[(nat_digit_to_chr r)] \<noteq> \<epsilon>" by simp
       have r_conv:"chr_to_digit (nat_digit_to_chr r) = int r \<and> (int r) \<ge> 0" using n_eq chr_nat_digit_inv
@@ -785,7 +764,5 @@ theorem from_int1: "n\<ge>0 \<Longrightarrow> from_int n = w \<Longrightarrow> t
   by simp
 
 theorem from_int2: "n<0 \<Longrightarrow> from_int n = \<epsilon>" by auto
-
-
 
 end
