@@ -381,9 +381,9 @@ qed
 
 subsubsection "Factors (str.prefixof, str.suffixof, str.contains)"
 
-theorem str_prefix: "str_prefixof v w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)"   by (simp add: prefix_def)
+theorem str_prefix[simp]: "str_prefixof v w \<longleftrightarrow> (\<exists>x. w = v\<cdot>x)"   by (simp add: prefix_def)
 
-theorem str_suffix: "str_suffixof v w \<longleftrightarrow> (\<exists>x. w = x\<cdot>v)"   by (simp add: suffix_def)
+theorem str_suffix[simp]: "str_suffixof v w \<longleftrightarrow> (\<exists>x. w = x\<cdot>v)"   by (simp add: suffix_def)
 
 theorem str_contains: "str_contains w v \<longleftrightarrow> (\<exists>x y. w = x\<cdot>v\<cdot>y)" 
   by (auto simp add: contains_iff_factor sublist_def)
