@@ -346,7 +346,8 @@ lemma substr_factor_equal:
   shows "str_substr w m n = (w[nat m; nat m + nat n])"
   using assms diff_nat_eq_if by auto
 
-theorem str_substr1:
+(*
+theorem str_substr1_old:
   assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
   shows "\<exists>!v. str_substr w m n = v \<and> (\<exists>x y. w =  x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and>  \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
 proof -
@@ -369,13 +370,71 @@ proof -
   then show ?thesis 
     by blast
 qed
+*)
+
+theorem str_substr11_aux:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  assumes "v = str_substr w m n"
+  shows "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
+proof -
+  have v_factor: "v = (w[nat m; nat m + nat n])"
+    using assms substr_factor_equal by blast
+
+  from assms have "nat m < (length w) \<and> nat m \<le> nat m + nat n" by auto
+  then have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> (length x) = nat m \<and>
+               (length v) = min ((nat m + nat n)-nat m) ((length w)-nat m))" 
+    using factorization v_factor by metis
+  then have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> (length v) = min (nat n) ((length w)-nat m))" 
+    by (metis add_diff_cancel_left' assms(1) int_nat_eq)
+  then have "(\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = int (min (nat n) ((length w)-nat m)))"
+    by simp
+  then have "\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = (min n (\<bar>w\<bar>- m))" 
+    using length_int_nat_sub_min assms by auto
+  then show ?thesis
+    using assms(4) by force
+qed
+
+theorem str_substr_exists:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  shows "\<exists>v. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
+  using str_substr11_aux assms by metis
+
+theorem str_substr1_aux:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  shows "(\<exists>x y. w = x\<cdot>(str_substr w m n)\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>str_substr w m n\<bar> = min n (\<bar>w\<bar> - m))"
+  using str_substr11_aux assms by auto
+
+theorem str_substr1_1:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  shows "\<exists>!v. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = min n (\<bar>w\<bar> - m))"
+proof (rule ex_ex1I)
+  show "\<exists>v x y. w = str_concat x (str_concat v y) \<and> int (length x) = m \<and>
+          int (length v) = min n (int (length w) - m)"
+    using str_substr_exists assms by blast
+next
+  fix v y
+  assume "\<exists>x y. w = str_concat x (str_concat v y) \<and> int (length x) = m \<and>
+            int (length v) = min n (int (length w) - m)"
+  moreover
+  assume "\<exists>x ya. w = str_concat x (str_concat y ya) \<and> int (length x) = m \<and>
+            int (length y) = min n (int (length w) - m)"
+  ultimately
+  show "v = y"
+    using assms by (metis append_eq_append_conv of_nat_eq_iff) 
+qed
+
+theorem str_substr1_2:
+  assumes "0 \<le> m" and "m < \<bar>w\<bar>" and "0 < n"
+  shows "str_substr w m n = (THE v. (\<exists>x y. w = x\<cdot>v\<cdot>y \<and> \<bar>x\<bar> = m \<and> \<bar>v\<bar> = min n (\<bar>w\<bar> - m)))"
+  using theI_unique[OF str_substr1_1[OF assms], of "str_substr w m n"]
+    str_substr1_aux[OF assms] by auto
 
 theorem str_substr2:
   assumes "\<not>(0 \<le> m \<and> m <  \<bar>w\<bar> \<and> 0 < n)"
   shows "str_substr w m n = \<epsilon>"
 proof -
-  from assms have assm:"(0 > m \<or> m \<ge> \<bar>w\<bar> \<or> 0 \<ge> n)" (is "?A \<or> ?B \<or> ?C") by auto
-  then show ?thesis  using assm by fastforce
+  from assms have "0 > m \<or> m \<ge> \<bar>w\<bar> \<or> 0 \<ge> n" by auto
+  then show ?thesis by fastforce
 qed
 
 
