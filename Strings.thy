@@ -3,7 +3,7 @@ theory Strings
 begin
 
 no_notation List.length ("\<bar>_\<bar>")
-no_notation Groups.abs_class.abs  ("\<bar>_\<bar>")
+unbundle no abs_syntax
 
 
 
