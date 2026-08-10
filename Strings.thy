@@ -661,7 +661,7 @@ theorem from_code2: "n<0 \<or>  196607 < n \<Longrightarrow> from_code n = \<eps
 
 lemma is_digit_iff_conv_positive:"\<not>(chr_is_digit c) \<longleftrightarrow> chr_to_digit c = -1"
   apply(auto)
-  by (smt (verit) linordered_nonzero_semiring_class.zero_le_one zero_le_numeral)
+  by (smt (verit) zero_le_one zero_le_numeral)
 
 lemma to_int_chr_iff:"to_int [c] \<ge> 0 \<longleftrightarrow> chr_is_digit c"
   by (auto split: if_splits simp add: Let_def)
