@@ -141,11 +141,57 @@ function  str_replace_re :: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_wor
   apply atomize_elim
   apply auto
   done
-
 termination by lexicographic_order
 
-abbreviation str_replace_re_all:: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_word \<Rightarrow> uc_word" where 
-  "str_replace_re_all \<equiv> undefined"
+(* Helper functions for a computable definition of str-replace-re *)
+fun first_nonempty_re_matching_substr :: 
+"'a::{linorder} list \<Rightarrow> \<comment>\<open>The original language\<close>
+'a regex \<Rightarrow> \<comment>\<open>A copy of the original string to allow us to backtrack\<close>
+'a list \<Rightarrow> \<comment>\<open>The accumulated result string so far\<close>
+'a list  \<Rightarrow> \<comment>\<open>The current substring the function is working on\<close>
+ 'a regex  \<Rightarrow>  \<comment>\<open>The derivative of the language w.r.t. to the current result string\<close>
+'a list option" where
+"first_nonempty_re_matching_substr  bt L res \<epsilon> dL  =
+ \<comment>\<open>In this case, the substring the function is processing now is empty.\<close>
+ (if nullable dL then Option.Some res else 
+   \<comment>\<open>If the derivative of the language to this point is not nullable, 
+  backtrack if we haven't exhausted all choices (bt is nonempty).\<close>
+  (case bt of \<epsilon> \<Rightarrow> Option.None 
+   | b#bs \<Rightarrow> (first_nonempty_re_matching_substr bs L \<epsilon> bs L)))" |
+\<comment>\<open>Take a derivative. If this derivative is nullable, we found the first matching substring.
+   Otherwise keep searching.\<close>
+"first_nonempty_re_matching_substr bt L res (x#xs) dL  = 
+(let dL' = (rderiv x dL) in
+  (if nullable dL'
+    then (Option.Some (res@[x])) 
+    else first_nonempty_re_matching_substr bt L (res@[x]) xs dL'))" 
+
+fun first_re_matching_substr :: 
+"'a::{linorder}list  \<comment>\<open>The string we are searching\<close> \<Rightarrow> 
+'a regex \<comment>\<open>The regular expression we are searching for\<close> \<Rightarrow> 
+'a list option" where
+"first_re_matching_substr w L = (if nullable L
+  then Some \<epsilon>  \<comment>\<open>If L contains the empty string, then the first substring of w in L is the empty string.\<close>
+  else first_nonempty_re_matching_substr w L \<epsilon> w L)"
+
+(* Computable alternative definition for str-replace-re *)
+fun str_replace_re' :: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_word \<Rightarrow> uc_word" where
+"str_replace_re' w L w2 = (case first_re_matching_substr w L of 
+  Option.Some m \<Rightarrow> (replace w m w2) | 
+  Option.None \<Rightarrow> w)"
+
+function (sequential)  str_replace_re_all :: "uc_word \<Rightarrow> uc_regex \<Rightarrow> uc_word \<Rightarrow> uc_word" where
+  "str_replace_re_all w L w2  =  
+(if (\<not> (\<exists>s. str_contains w s \<and> s \<noteq> \<epsilon> \<and> str_in_re s L)) 
+  then w
+ else 
+  (let u1 = (THE u1'. (shortest_word u1' (\<lambda>u. \<exists>w1 u2. (str_in_re w1 L \<and> u \<cdot> w1 \<cdot> u2 = w))));
+   w1 = (THE w1'. shortest_word w1' (\<lambda>w1''. \<exists>u2'. u1 \<cdot> w1'' \<cdot> u2' = w \<and> str_in_re w1'' L \<and> w1'' \<noteq> \<epsilon>));  
+   u2 = THE u2'. u1 \<cdot> w1 \<cdot> u2' = w   in 
+    (u1 \<cdot> w2 \<cdot> (str_replace_re_all u2 L w2))))"
+  by auto
+termination
+  sorry
 
 abbreviation str_to_re:: "uc_word \<Rightarrow> uc_regex" where 
   "str_to_re w \<equiv> regex.Const w"
