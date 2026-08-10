@@ -48,7 +48,7 @@ Currently, only the [Core](https://smtlib.cs.uiowa.edu/theories-Core.shtml) and 
 | `(str.indexof String String Int Int)`              | ✅   |
 | `(str.replace String String String String)`        | ✅   |
 | `(str.replace_all String String String String)`    | ❌   |
-| `(str.replace_re String RegLan String String)`     | ✅   |
+| `(str.replace_re String RegLan String String)`     | ❌   |
 | `(str.replace_re_all String RegLan String String)` | ❌   |
 | `(re.comp RegLan RegLan)`                          | ✅   |
 | `(re.diff RegLan RegLan RegLan)`                   | ✅   |
